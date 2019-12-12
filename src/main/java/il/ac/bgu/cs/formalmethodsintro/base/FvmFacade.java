@@ -1,6 +1,7 @@
 package il.ac.bgu.cs.formalmethodsintro.base;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +56,15 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (ts.getInitialStates().size() > 1)
+			return false;
+		for (S state : ts.getStates()) {
+			for (A action : ts.getActions()) {
+				if (post(ts, state, action).size() > 1)
+					return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -70,7 +79,17 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (ts.getInitialStates().size() > 1)
+			return false;
+		for (S state : ts.getStates()) {
+			Set<Set<P>> LStateTag = new HashSet<Set<P>>();
+			for (S statePost : post(ts, state)) {
+				LStateTag.add(ts.getLabel(statePost));
+			}
+			if(post(ts, state).size() != LStateTag.size())
+				return false;
+		}
+		return true;
 	}
 
 	/**
