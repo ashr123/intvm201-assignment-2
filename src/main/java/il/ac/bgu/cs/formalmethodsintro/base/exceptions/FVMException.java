@@ -4,10 +4,12 @@ package il.ac.bgu.cs.formalmethodsintro.base.exceptions;
 /**
  * Base class for exceptions thrown from the methods in this library.
  */
-public class FVMException extends RuntimeException {
+public class FVMException extends RuntimeException
+{
 
-    public FVMException(String string) {
-        super(string);
-    }
+	public FVMException(String string)
+	{
+		super(string);
+	}
 
 }

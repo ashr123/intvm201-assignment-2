@@ -5,17 +5,18 @@ import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
 /**
  * Objects that help serializing {@link TransitionSystem}s.
  *
- * @author michael
  * @param <S> Type of the states in the serialized system.
  * @param <A> Type of the actions in the serialized system.
  * @param <P> Type of the atomic propositions in the serialized system.
+ * @author michael
  */
-public interface TSSerializationHelper<S, A, P> {
+public interface TSSerializationHelper<S, A, P>
+{
 
-    String serializeState(S s);
+	String serializeState(S s);
 
-    String serializeAction(A a);
+	String serializeAction(A a);
 
-    String serializeAtomicProposition(P ap);
+	String serializeAtomicProposition(P ap);
 
 }

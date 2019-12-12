@@ -30,307 +30,359 @@ import il.ac.bgu.cs.formalmethodsintro.base.exceptions.TransitionSystemPart;
 
 /**
  * Converts {@link TransitionSystem} objects to XML format and vice versa.
- *
  */
-public class StAXTransitionSystemXmlFormat implements TransitionSystemXmlFormat {
+public class StAXTransitionSystemXmlFormat implements TransitionSystemXmlFormat
+{
 
-    static final String kTransitionSystem = "transitionSystem";
-    static final String kName = "Name";
-    static final String kStates = "states";
-    static final String kState = "state";
-    static final String kActions = "actions";
-    static final String kAction = "action";
-    static final String kEntry = "entry";
-    static final String kAtomicPropositions = "atomicPropositions";
-    static final String kAtomicProposition = "atomicProposition";
-    static final String kInitialStates = "initialStates";
-    static final String kInitialState = "initialState";
-    static final String kLabelingFunction = "labelingFunction";
-    static final String kLabel = "label";
-    static final String kTransitions = "transitions";
-    static final String kTransition = "transition";
-    static final String attSId = "sId";
-    static final String attAId = "aId";
-    static final String attApId = "apId";
-    static final String attState = "state";
-    static final String attAction = "action";
-    static final String attAP = "atomicProposition";
-    static final String attFrom = "from";
-    static final String attTo = "to";
+	static final String kTransitionSystem = "transitionSystem";
+	static final String kName = "Name";
+	static final String kStates = "states";
+	static final String kState = "state";
+	static final String kActions = "actions";
+	static final String kAction = "action";
+	static final String kEntry = "entry";
+	static final String kAtomicPropositions = "atomicPropositions";
+	static final String kAtomicProposition = "atomicProposition";
+	static final String kInitialStates = "initialStates";
+	static final String kInitialState = "initialState";
+	static final String kLabelingFunction = "labelingFunction";
+	static final String kLabel = "label";
+	static final String kTransitions = "transitions";
+	static final String kTransition = "transition";
+	static final String attSId = "sId";
+	static final String attAId = "aId";
+	static final String attApId = "apId";
+	static final String attState = "state";
+	static final String attAction = "action";
+	static final String attAP = "atomicProposition";
+	static final String attFrom = "from";
+	static final String attTo = "to";
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    @Override
-    public void write(TransitionSystem ts, Writer output) throws XMLStreamException {
-        write(ts, XMLOutputFactory.newFactory().createXMLStreamWriter(output));
-    }
+	public static <R> R wrapExceptions(ThrowingFunction<R> func)
+	{
+		try
+		{
+			return func.apply();
+		} catch (Exception e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
 
-    protected void write(TransitionSystem<String, String, String> ts, XMLStreamWriter out) throws XMLStreamException {
-        Map<String, String> apIdMap = new HashMap<>();
+	public static void wrapExceptions(VoidThrowingFunction func)
+	{
+		try
+		{
+			func.apply();
+		} catch (Exception e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
 
-        out.writeStartDocument();
-        out.writeStartElement(kTransitionSystem);
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	@Override
+	public void write(TransitionSystem ts, Writer output) throws XMLStreamException
+	{
+		write(ts, XMLOutputFactory.newFactory().createXMLStreamWriter(output));
+	}
 
-        if (ts.getName() != null) {
-            out.writeStartElement(kName);
-            out.writeCharacters(ts.getName());
-            out.writeEndElement();
-        }
+	protected void write(TransitionSystem<String, String, String> ts, XMLStreamWriter out) throws XMLStreamException
+	{
+		Map<String, String> apIdMap = new HashMap<>();
 
-        out.writeStartElement(kStates);
-        ts.getStates().forEach(s -> wrapExceptions(() -> {
-            out.writeEmptyElement(kState);
-            out.writeAttribute(attSId, s);
-        }));
-        out.writeEndElement();
+		out.writeStartDocument();
+		out.writeStartElement(kTransitionSystem);
 
-        out.writeStartElement(kActions);
-        ts.getActions().forEach(act -> wrapExceptions(() -> {
-            out.writeEmptyElement(kAction);
-            out.writeAttribute(attAId, act);
-        }));
-        out.writeEndElement();
+		if (ts.getName() != null)
+		{
+			out.writeStartElement(kName);
+			out.writeCharacters(ts.getName());
+			out.writeEndElement();
+		}
 
-        out.writeStartElement(kAtomicPropositions);
-        ts.getAtomicPropositions().forEach(ap -> wrapExceptions(() -> {
-            apIdMap.put(ap, "ap" + (apIdMap.size() + 1));
+		out.writeStartElement(kStates);
+		ts.getStates().forEach(s -> wrapExceptions(() ->
+		{
+			out.writeEmptyElement(kState);
+			out.writeAttribute(attSId, s);
+		}));
+		out.writeEndElement();
 
-            out.writeStartElement(kAtomicProposition);
-            out.writeAttribute(attApId, apIdMap.get(ap));
-            out.writeCharacters(ap);
-            out.writeEndElement();
-        }));
-        out.writeEndElement();
+		out.writeStartElement(kActions);
+		ts.getActions().forEach(act -> wrapExceptions(() ->
+		{
+			out.writeEmptyElement(kAction);
+			out.writeAttribute(attAId, act);
+		}));
+		out.writeEndElement();
 
-        out.writeStartElement(kInitialStates);
-        ts.getInitialStates().forEach(istt -> wrapExceptions(() -> {
-            out.writeEmptyElement(kInitialState);
-            out.writeAttribute(attState, istt);
-        }));
-        out.writeEndElement();
+		out.writeStartElement(kAtomicPropositions);
+		ts.getAtomicPropositions().forEach(ap -> wrapExceptions(() ->
+		{
+			apIdMap.put(ap, "ap" + (apIdMap.size() + 1));
 
-        out.writeStartElement(kLabelingFunction);
-        ts.getLabelingFunction().entrySet().forEach(ent -> wrapExceptions(() -> {
-            out.writeStartElement(kEntry);
-            out.writeAttribute(attState, ent.getKey());
-            ent.getValue().forEach(lbl -> wrapExceptions(() -> {
-                out.writeEmptyElement(kLabel);
-                out.writeAttribute(attAP, apIdMap.get(lbl));
-            }));
-            out.writeEndElement();
-        }));
-        out.writeEndElement();
+			out.writeStartElement(kAtomicProposition);
+			out.writeAttribute(attApId, apIdMap.get(ap));
+			out.writeCharacters(ap);
+			out.writeEndElement();
+		}));
+		out.writeEndElement();
 
-        out.writeStartElement(kTransitions);
-        ts.getTransitions().forEach(t -> wrapExceptions(() -> {
-            out.writeEmptyElement(kTransition);
-            out.writeAttribute(attFrom, t.getFrom());
-            out.writeAttribute(attAction, t.getAction());
-            out.writeAttribute(attTo, t.getTo());
-        }));
+		out.writeStartElement(kInitialStates);
+		ts.getInitialStates().forEach(istt -> wrapExceptions(() ->
+		{
+			out.writeEmptyElement(kInitialState);
+			out.writeAttribute(attState, istt);
+		}));
+		out.writeEndElement();
 
-        out.writeEndElement();
+		out.writeStartElement(kLabelingFunction);
+		ts.getLabelingFunction().entrySet().forEach(ent -> wrapExceptions(() ->
+		{
+			out.writeStartElement(kEntry);
+			out.writeAttribute(attState, ent.getKey());
+			ent.getValue().forEach(lbl -> wrapExceptions(() ->
+			{
+				out.writeEmptyElement(kLabel);
+				out.writeAttribute(attAP, apIdMap.get(lbl));
+			}));
+			out.writeEndElement();
+		}));
+		out.writeEndElement();
 
-        out.writeEndDocument();
-    }
+		out.writeStartElement(kTransitions);
+		ts.getTransitions().forEach(t -> wrapExceptions(() ->
+		{
+			out.writeEmptyElement(kTransition);
+			out.writeAttribute(attFrom, t.getFrom());
+			out.writeAttribute(attAction, t.getAction());
+			out.writeAttribute(attTo, t.getTo());
+		}));
 
-    @Override
-    public TransitionSystem<String, String, String> read(Reader characterReader) throws InvalidTSDescriptionException, SAXException, ParserConfigurationException, IOException {
-        SAXParserFactory fact = SAXParserFactory.newInstance();
-        SAXParser parser = fact.newSAXParser();
-        XMLReader xmlReader = parser.getXMLReader();
+		out.writeEndElement();
 
-        final AtomicReference<TransitionSystem<String, String, String>> tsRef = new AtomicReference<>();
-        final List<FVMException> errors = new LinkedList<>();
+		out.writeEndDocument();
+	}
 
-        xmlReader.setContentHandler(new ContentHandler() {
+	@Override
+	public TransitionSystem<String, String, String> read(Reader characterReader) throws InvalidTSDescriptionException, SAXException, ParserConfigurationException, IOException
+	{
+		SAXParserFactory fact = SAXParserFactory.newInstance();
+		SAXParser parser = fact.newSAXParser();
+		XMLReader xmlReader = parser.getXMLReader();
 
-            TransitionSystem<String, String, String> ts;
-            private Locator docLoc;
-            private StringBuilder sb;
-            private String apId;
-            private String labeledState;
+		final AtomicReference<TransitionSystem<String, String, String>> tsRef = new AtomicReference<>();
+		final List<FVMException> errors = new LinkedList<>();
 
-            @Override
-            public void setDocumentLocator(Locator locator) {
-                docLoc = locator;
-            }
+		xmlReader.setContentHandler(new ContentHandler()
+		{
 
-            @Override
-            public void startDocument() throws SAXException {
-                sb = new StringBuilder();
-            }
+			TransitionSystem<String, String, String> ts;
+			private Locator docLoc;
+			private StringBuilder sb;
+			private String apId;
+			private String labeledState;
 
-            @Override
-            public void endDocument() throws SAXException {
-            }
+			@Override
+			public void setDocumentLocator(Locator locator)
+			{
+				docLoc = locator;
+			}
 
-            @Override
-            public void startPrefixMapping(String prefix, String uri) throws SAXException {
-            }
+			@Override
+			public void startDocument() throws SAXException
+			{
+				sb = new StringBuilder();
+			}
 
-            @Override
-            public void endPrefixMapping(String prefix) throws SAXException {
-            }
+			@Override
+			public void endDocument() throws SAXException
+			{
+			}
 
-            @Override
-            public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-                switch (qName) {
-                    case kTransitionSystem:
-                        ts = new TransitionSystem<>();
-                        break;
+			@Override
+			public void startPrefixMapping(String prefix, String uri) throws SAXException
+			{
+			}
 
-                    case kAction:
-                        String actionId = atts.getValue(attAId);
-                        if (actionId != null) {
-                            ts.addAction(actionId);
-                        } else {
-                            errors.add(new InvalidXmlException(loc() + " missing " + attAId + " attribute", TransitionSystemPart.ACTIONS));
-                        }
-                        break;
+			@Override
+			public void endPrefixMapping(String prefix) throws SAXException
+			{
+			}
 
-                    case kState:
-                        String stateId = atts.getValue(attSId);
-                        if (stateId != null) {
-                            ts.addState(stateId);
-                        } else {
-                            errors.add(new InvalidXmlException(loc() + " missing " + attSId + " attribute", TransitionSystemPart.STATES));
-                        }
-                        break;
+			@Override
+			public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException
+			{
+				switch (qName)
+				{
+					case kTransitionSystem:
+						ts = new TransitionSystem<>();
+						break;
 
-                    case kAtomicProposition:
-                        apId = atts.getValue(attApId);
-                        if (apId == null) {
-                            errors.add(new InvalidXmlException(loc() + " missing " + attApId + " attribute", TransitionSystemPart.ATOMIC_PROPOSITIONS));
-                        }
-                        break;
+					case kAction:
+						String actionId = atts.getValue(attAId);
+						if (actionId != null)
+						{
+							ts.addAction(actionId);
+						} else
+						{
+							errors.add(new InvalidXmlException(loc() + " missing " + attAId + " attribute", TransitionSystemPart.ACTIONS));
+						}
+						break;
 
-                    case kInitialState:
-                        try {
-                            ts.addInitialState(atts.getValue(attState));
-                        } catch (FVMException e) {
-                            errors.add(e);
-                        }
-                        break;
+					case kState:
+						String stateId = atts.getValue(attSId);
+						if (stateId != null)
+						{
+							ts.addState(stateId);
+						} else
+						{
+							errors.add(new InvalidXmlException(loc() + " missing " + attSId + " attribute", TransitionSystemPart.STATES));
+						}
+						break;
 
-                    case kEntry:
-                        labeledState = atts.getValue(attState);
-                        if (labeledState == null) {
-                            errors.add(new InvalidXmlException(loc() + " missing " + attState + " attribute", TransitionSystemPart.ATOMIC_PROPOSITIONS));
-                        }
-                        break;
+					case kAtomicProposition:
+						apId = atts.getValue(attApId);
+						if (apId == null)
+						{
+							errors.add(new InvalidXmlException(loc() + " missing " + attApId + " attribute", TransitionSystemPart.ATOMIC_PROPOSITIONS));
+						}
+						break;
 
-                    case kLabel:
-                        String propId = atts.getValue(attAP);
-                        if (propId == null) {
-                            errors.add(new InvalidXmlException(loc() + " missing " + attAP + " attribute", TransitionSystemPart.LABELING_FUNCTION));
-                        } else {
-                            try {
-                                ts.addToLabel(labeledState, propId);
-                            } catch (FVMException fe) {
-                                errors.add(fe);
-                            }
-                        }
-                        break;
+					case kInitialState:
+						try
+						{
+							ts.addInitialState(atts.getValue(attState));
+						} catch (FVMException e)
+						{
+							errors.add(e);
+						}
+						break;
 
-                    case kTransition:
-                        String from = atts.getValue(attFrom);
-                        String action = atts.getValue(attAction);
-                        String to = atts.getValue(attTo);
+					case kEntry:
+						labeledState = atts.getValue(attState);
+						if (labeledState == null)
+						{
+							errors.add(new InvalidXmlException(loc() + " missing " + attState + " attribute", TransitionSystemPart.ATOMIC_PROPOSITIONS));
+						}
+						break;
 
-                        if (from == null || action == null || to == null) {
-                            errors.add(new InvalidXmlException(loc() + " transition node should have attributes " + attFrom + ", " + attAction + ", and " + attTo, TransitionSystemPart.TRANSITIONS));
-                        } else {
-                            try {
-                                ts.addTransition(new TSTransition<>(from, action, to));
-                            } catch (FVMException fe) {
-                                errors.add(fe);
-                            }
-                        }
-                }
-            }
+					case kLabel:
+						String propId = atts.getValue(attAP);
+						if (propId == null)
+						{
+							errors.add(new InvalidXmlException(loc() + " missing " + attAP + " attribute", TransitionSystemPart.LABELING_FUNCTION));
+						} else
+						{
+							try
+							{
+								ts.addToLabel(labeledState, propId);
+							} catch (FVMException fe)
+							{
+								errors.add(fe);
+							}
+						}
+						break;
 
-            @Override
-            public void endElement(String uri, String localName, String qName) throws SAXException {
-                switch (qName) {
-                    case kTransitionSystem:
-                        tsRef.set(ts);
-                        break;
+					case kTransition:
+						String from = atts.getValue(attFrom);
+						String action = atts.getValue(attAction);
+						String to = atts.getValue(attTo);
 
-                    case kName:
-                        ts.setName(sb.toString().trim());
-                        sb.setLength(0);
-                        break;
+						if (from == null || action == null || to == null)
+						{
+							errors.add(new InvalidXmlException(loc() + " transition node should have attributes " + attFrom + ", " + attAction + ", and " + attTo, TransitionSystemPart.TRANSITIONS));
+						} else
+						{
+							try
+							{
+								ts.addTransition(new TSTransition<>(from, action, to));
+							} catch (FVMException fe)
+							{
+								errors.add(fe);
+							}
+						}
+				}
+			}
 
-                    case kAtomicProposition:
-                        String proposition = sb.toString().trim();
-                        ts.addAtomicProposition(proposition);
-                        sb.setLength(0);
-                        apId = null;
-                        break;
+			@Override
+			public void endElement(String uri, String localName, String qName) throws SAXException
+			{
+				switch (qName)
+				{
+					case kTransitionSystem:
+						tsRef.set(ts);
+						break;
 
-                    case kEntry:
-                        labeledState = null;
-                        break;
-                }
-            }
+					case kName:
+						ts.setName(sb.toString().trim());
+						sb.setLength(0);
+						break;
 
-            @Override
-            public void characters(char[] ch, int start, int length) throws SAXException {
-                sb.append(ch, start, length);
-            }
+					case kAtomicProposition:
+						String proposition = sb.toString().trim();
+						ts.addAtomicProposition(proposition);
+						sb.setLength(0);
+						apId = null;
+						break;
 
-            @Override
-            public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
-            }
+					case kEntry:
+						labeledState = null;
+						break;
+				}
+			}
 
-            @Override
-            public void processingInstruction(String target, String data) throws SAXException {
-            }
+			@Override
+			public void characters(char[] ch, int start, int length) throws SAXException
+			{
+				sb.append(ch, start, length);
+			}
 
-            @Override
-            public void skippedEntity(String name) throws SAXException {
-            }
+			@Override
+			public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException
+			{
+			}
 
-            private String loc() {
-                return "[" + docLoc.getLineNumber() + ": " + docLoc.getColumnNumber() + "]";
-            }
-        });
+			@Override
+			public void processingInstruction(String target, String data) throws SAXException
+			{
+			}
 
-        xmlReader.parse(new InputSource(characterReader));
+			@Override
+			public void skippedEntity(String name) throws SAXException
+			{
+			}
 
-        if (errors.isEmpty()) {
-            return tsRef.get();
-        } else {
-            throw new InvalidTSDescriptionException(errors);
-        }
-    }
+			private String loc()
+			{
+				return "[" + docLoc.getLineNumber() + ": " + docLoc.getColumnNumber() + "]";
+			}
+		});
 
-    @FunctionalInterface
-    public static interface ThrowingFunction<R> {
+		xmlReader.parse(new InputSource(characterReader));
 
-        R apply() throws Exception;
-    }
+		if (errors.isEmpty())
+		{
+			return tsRef.get();
+		} else
+		{
+			throw new InvalidTSDescriptionException(errors);
+		}
+	}
 
-    @FunctionalInterface
-    public static interface VoidThrowingFunction {
+	@FunctionalInterface
+	public static interface ThrowingFunction<R>
+	{
 
-        void apply() throws Exception;
-    }
+		R apply() throws Exception;
+	}
 
-    public static <R> R wrapExceptions(ThrowingFunction<R> func) {
-        try {
-            return func.apply();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+	@FunctionalInterface
+	public static interface VoidThrowingFunction
+	{
 
-    public static void wrapExceptions(VoidThrowingFunction func) {
-        try {
-            func.apply();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+		void apply() throws Exception;
+	}
 
 }

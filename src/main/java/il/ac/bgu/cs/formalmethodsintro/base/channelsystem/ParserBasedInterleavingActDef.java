@@ -18,78 +18,91 @@ import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ThrowingErrorListener;
  * Channels with zero capacity are marked by an underscore in front of the
  * channel name.
  */
-public class ParserBasedInterleavingActDef implements InterleavingActDef {
+public class ParserBasedInterleavingActDef implements InterleavingActDef
+{
 
-    @Override
-    public Map<String, Object> effect(Map<String, Object> eval, Object action) {
-        if (action.equals("")) {
-            return eval;
-        }
+	@Override
+	public Map<String, Object> effect(Map<String, Object> eval, Object action)
+	{
+		if (action.equals(""))
+		{
+			return eval;
+		}
 
-        try {
-            return new Evaluator(eval).evaluate(parseAction((String) action));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+		try
+		{
+			return new Evaluator(eval).evaluate(parseAction((String) action));
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-    /**
-     * Parse a string and build a parse tree for a joined action.
-     *
-     * @param action The string to parse.
-     *
-     * @return The root of the parse tree or null if cannot parse.
-     */
-    private JoinedContext parseAction(String action) {
-        NanoPromelaLexer lexer = new NanoPromelaLexer(new ANTLRInputStream(action));
+	/**
+	 * Parse a string and build a parse tree for a joined action.
+	 *
+	 * @param action The string to parse.
+	 * @return The root of the parse tree or null if cannot parse.
+	 */
+	private JoinedContext parseAction(String action)
+	{
+		NanoPromelaLexer lexer = new NanoPromelaLexer(new ANTLRInputStream(action));
 
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        NanoPromelaParser parser = new NanoPromelaParser(tokens);
+		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		NanoPromelaParser parser = new NanoPromelaParser(tokens);
 
-        lexer.removeErrorListeners();
-        lexer.addErrorListener(new ThrowingErrorListener());
+		lexer.removeErrorListeners();
+		lexer.addErrorListener(new ThrowingErrorListener());
 
-        parser.removeErrorListeners();
-        parser.addErrorListener(new ThrowingErrorListener());
+		parser.removeErrorListeners();
+		parser.addErrorListener(new ThrowingErrorListener());
 
-        try {
-            JoinedContext p = parser.joined();
+		try
+		{
+			JoinedContext p = parser.joined();
 
-            if (parser.isMatchedEOF()) {
-                return p;
-            } else {
-                return null;
-            }
+			if (parser.isMatchedEOF())
+			{
+				return p;
+			} else
+			{
+				return null;
+			}
 
-        } catch (Exception ex) {
-            return null;
-        }
-    }
+		} catch (Exception ex)
+		{
+			return null;
+		}
+	}
 
-    @Override
-    public boolean isMatchingAction(Object action) {
-        return action.equals("") || parseAction((String) action) != null;
-    }
+	@Override
+	public boolean isMatchingAction(Object action)
+	{
+		return action.equals("") || parseAction((String) action) != null;
+	}
 
-    @Override
-    public boolean isOneSidedAction(String action) {
-        NanoPromelaLexer lexer = new NanoPromelaLexer(new ANTLRInputStream(action));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        NanoPromelaParser parser = new NanoPromelaParser(tokens);
+	@Override
+	public boolean isOneSidedAction(String action)
+	{
+		NanoPromelaLexer lexer = new NanoPromelaLexer(new ANTLRInputStream(action));
+		CommonTokenStream tokens = new CommonTokenStream(lexer);
+		NanoPromelaParser parser = new NanoPromelaParser(tokens);
 
-        lexer.removeErrorListeners();
-        lexer.addErrorListener(new ThrowingErrorListener());
+		lexer.removeErrorListeners();
+		lexer.addErrorListener(new ThrowingErrorListener());
 
-        parser.removeErrorListeners();
-        parser.addErrorListener(new ThrowingErrorListener());
+		parser.removeErrorListeners();
+		parser.addErrorListener(new ThrowingErrorListener());
 
-        try {
-            parser.onesided();
-            return parser.isMatchedEOF();
-        } catch (Exception e) {
-            return false;
-        }
+		try
+		{
+			parser.onesided();
+			return parser.isMatchedEOF();
+		} catch (Exception e)
+		{
+			return false;
+		}
 
-    }
+	}
 }

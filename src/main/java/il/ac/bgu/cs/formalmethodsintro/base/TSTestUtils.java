@@ -20,212 +20,227 @@ import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
 /**
  * Helps building transition systems. Contains some sample transition systems
  * for us to work on.
- *
+ * <p>
  * PDF drawings of some of the systems can be found in the "docs" folder at the
  * top repository level.
  *
  * @author michael
  */
-public class TSTestUtils {
+public class TSTestUtils
+{
 
-    public static enum Actions {
-        alpha, beta, gamma, delta, epsilon, zeta, eta, theta
-    }
+	/**
+	 * Adds a label for each state. Label is the state's {@code toString} method
+	 * result.
+	 *
+	 * @param <S> Type of states in the system
+	 * @param <A> Type of actions in the system
+	 * @param ts  the system
+	 * @return same system, but with the APs added.
+	 */
+	public static <S, A> TransitionSystem<S, A, String> addTagsByStateNames(TransitionSystem<S, A, String> ts)
+	{
 
-    public static enum States {
-        a, b, c, d, e, f, g
-    }
+		ts.getStates().forEach(s ->
+		{
+			String ap = s.toString();
+			ts.addAtomicProposition(ap);
+			ts.addToLabel(s, ap);
+		});
 
-    public static enum APs {
-        P, Q, R, S
-    }
+		return ts;
+	}
 
-    /**
-     * Adds a label for each state. Label is the state's {@code toString} method
-     * result.
-     *
-     * @param <S> Type of states in the system
-     * @param <A> Type of actions in the system
-     * @param ts the system
-     * @return same system, but with the APs added.
-     */
-    public static <S, A> TransitionSystem<S, A, String> addTagsByStateNames(TransitionSystem<S, A, String> ts) {
+	/**
+	 * {@code
+	 * +----------------- delta ------------------+
+	 * |                                          |
+	 * v                                          |
+	 * ((a))--alpha--> (b) --beta--> (c) --gamma-> (d)
+	 * }
+	 *
+	 * @return a simple transition system.
+	 */
+	public static TransitionSystem<States, Actions, APs> simpleTransitionSystem()
+	{
+		TransitionSystem<States, Actions, APs> ts = new TransitionSystem<>();
 
-        ts.getStates().forEach(s -> {
-            String ap = s.toString();
-            ts.addAtomicProposition(ap);
-            ts.addToLabel(s, ap);
-        });
+		ts.setName("Simple Transition System");
 
-        return ts;
-    }
+		IntStream.range(0, 4).forEach(i ->
+		{
+			ts.addState(States.values()[i]);
+			ts.addAction(Actions.values()[i]);
+			ts.addAtomicProposition(APs.values()[i]);
+		});
 
-    /**
-     * {@code
-     *    +----------------- delta ------------------+
-     *    |                                          |
-     *    v                                          |
-     *  ((a))--alpha--> (b) --beta--> (c) --gamma-> (d)
-     * }
-     *
-     * @return a simple transition system.
-     */
-    public static TransitionSystem<States, Actions, APs> simpleTransitionSystem() {
-        TransitionSystem<States, Actions, APs> ts = new TransitionSystem<>();
+		ts.addInitialState(a);
 
-        ts.setName("Simple Transition System");
+		ts.addTransitionFrom(a).action(alpha).to(b);
+		ts.addTransitionFrom(b).action(beta).to(c);
+		ts.addTransitionFrom(c).action(gamma).to(d);
+		ts.addTransitionFrom(d).action(delta).to(a);
 
-        IntStream.range(0, 4).forEach(i -> {
-            ts.addState(States.values()[i]);
-            ts.addAction(Actions.values()[i]);
-            ts.addAtomicProposition(APs.values()[i]);
-        });
+		ts.addToLabel(a, P);
+		ts.addToLabel(b, Q);
+		ts.addToLabel(c, R);
+		ts.addToLabel(d, R);
 
-        ts.addInitialState(a);
+		return ts;
+	}
 
-        ts.addTransitionFrom(a).action(alpha).to(b);
-        ts.addTransitionFrom(b).action(beta).to(c);
-        ts.addTransitionFrom(c).action(gamma).to(d);
-        ts.addTransitionFrom(d).action(delta).to(a);
+	/**
+	 * {@code
+	 * alpha
+	 * +---+
+	 * |   |
+	 * |   V   alpha
+	 * +---a<--------->b
+	 * |
+	 * beta|
+	 * |     * Initial state: a
+	 * V
+	 * c
+	 * }
+	 *
+	 * @return
+	 */
+	public static TransitionSystem<States, Actions, APs> threeStateTS()
+	{
+		TransitionSystem<States, Actions, APs> ts = new TransitionSystem<>();
+		ts.setName("Three-state TS");
+		ts.addStates(a, b, c);
+		ts.addActions(alpha, beta);
 
-        ts.addToLabel(a, P);
-        ts.addToLabel(b, Q);
-        ts.addToLabel(c, R);
-        ts.addToLabel(d, R);
+		ts.addInitialState(a);
 
-        return ts;
-    }
+		ts.addTransitionFrom(a).action(alpha).to(a);
+		ts.addTransitionFrom(a).action(alpha).to(b);
+		ts.addTransitionFrom(b).action(alpha).to(a);
+		ts.addTransitionFrom(a).action(beta).to(c);
 
-    /**
-     * {@code
-     * alpha
-     * +---+
-     * |   |
-     * |   V   alpha
-     * +---a<--------->b
-     *     |
-     * beta|
-     *     |     * Initial state: a
-     *     V
-     *     c
-     * }
-     *
-     * @return
-     */
-    public static TransitionSystem<States, Actions, APs> threeStateTS() {
-        TransitionSystem<States, Actions, APs> ts = new TransitionSystem<>();
-        ts.setName("Three-state TS");
-        ts.addStates(a, b, c);
-        ts.addActions(alpha, beta);
+		return ts;
+	}
 
-        ts.addInitialState(a);
+	/**
+	 * Creates a linear transition system, with the states starting from
+	 * {@code 1} to {@code <num>} and the actions going from {@code a2} to
+	 * {@code a<num-1>}.
+	 *
+	 * @param <S>          Type of states in the generated system.
+	 * @param stateNum     number of states in the generated system.
+	 * @param stateFactory Object creating the states based on their index.
+	 * @return A linear transition system.
+	 */
+	public static <S> TransitionSystem<S, String, String> makeLinearTs(int stateNum, Function<Integer, S> stateFactory)
+	{
+		TransitionSystem<S, String, String> retVal = new TransitionSystem<>();
+		retVal.setName("Linear of " + stateNum);
+		IntStream.rangeClosed(1, stateNum).mapToObj(stateFactory::apply).forEach(retVal::addState);
+		IntStream.rangeClosed(1, stateNum - 1).forEach(i -> retVal.addAction("a" + i));
+		IntStream.rangeClosed(1, stateNum - 1)
+				.forEach(i -> retVal.addTransitionFrom(stateFactory.apply(i))
+						.action("a" + i)
+						.to(stateFactory.apply(i + 1)));
 
-        ts.addTransitionFrom(a).action(alpha).to(a);
-        ts.addTransitionFrom(a).action(alpha).to(b);
-        ts.addTransitionFrom(b).action(alpha).to(a);
-        ts.addTransitionFrom(a).action(beta).to(c);
+		retVal.addInitialState(stateFactory.apply(1));
 
-        return ts;
-    }
+		return retVal;
+	}
 
-    /**
-     * Creates a linear transition system, with the states starting from
-     * {@code 1} to {@code <num>} and the actions going from {@code a2} to
-     * {@code a<num-1>}.
-     *
-     * @param <S> Type of states in the generated system.
-     * @param stateNum number of states in the generated system.
-     * @param stateFactory Object creating the states based on their index.
-     * @return A linear transition system.
-     */
-    public static <S> TransitionSystem<S, String, String> makeLinearTs(int stateNum, Function<Integer, S> stateFactory) {
-        TransitionSystem<S, String, String> retVal = new TransitionSystem<>();
-        retVal.setName("Linear of " + stateNum);
-        IntStream.rangeClosed(1, stateNum).mapToObj(stateFactory::apply).forEach(retVal::addState);
-        IntStream.rangeClosed(1, stateNum - 1).forEach(i -> retVal.addAction("a" + i));
-        IntStream.rangeClosed(1, stateNum - 1)
-                .forEach(i -> retVal.addTransitionFrom(stateFactory.apply(i))
-                .action("a" + i)
-                .to(stateFactory.apply(i + 1)));
+	public static TransitionSystem<Integer, String, String> makeLinearTs(int stateNum)
+	{
+		return makeLinearTs(stateNum, Integer::valueOf);
+	}
 
-        retVal.addInitialState(stateFactory.apply(1));
+	/**
+	 * Creates a circular transition system, with the states starting from
+	 * {@code s1} to {@code s<num>} and the actions going from {@code a1} to
+	 * {@code a<num>}.
+	 *
+	 * @param stateNum number of states in the generated system.
+	 * @return A circular transition system.
+	 */
+	public static TransitionSystem<Integer, String, String> makeCircularTs(int stateNum)
+	{
+		TransitionSystem<Integer, String, String> retVal = makeLinearTs(stateNum);
+		retVal.setName("Circular of " + stateNum);
+		retVal.addAction("a" + stateNum);
+		retVal.addTransitionFrom(stateNum).action("a" + stateNum).to(1);
 
-        return retVal;
-    }
+		return retVal;
+	}
 
-    public static TransitionSystem<Integer, String, String> makeLinearTs(int stateNum) {
-        return makeLinearTs(stateNum, Integer::valueOf);
-    }
+	/**
+	 * Creates a circular transition system, with the states starting from
+	 * {@code s1} to {@code s<num>} and the actions going from {@code a1} to
+	 * {@code a<num>}, and a reset action that goes to {@code s1} from every
+	 * state.
+	 *
+	 * @param stateNum number of states in the generated system.
+	 * @return A circular transition system with a "reset" action.
+	 */
+	public static TransitionSystem<Integer, String, String> makeCircularTsWithReset(int stateNum)
+	{
+		TransitionSystem<Integer, String, String> retVal = makeCircularTs(stateNum);
 
-    /**
-     * Creates a circular transition system, with the states starting from
-     * {@code s1} to {@code s<num>} and the actions going from {@code a1} to
-     * {@code a<num>}.
-     *
-     * @param stateNum number of states in the generated system.
-     * @return A circular transition system.
-     */
-    public static TransitionSystem<Integer, String, String> makeCircularTs(int stateNum) {
-        TransitionSystem<Integer, String, String> retVal = makeLinearTs(stateNum);
-        retVal.setName("Circular of " + stateNum);
-        retVal.addAction("a" + stateNum);
-        retVal.addTransitionFrom(stateNum).action("a" + stateNum).to(1);
+		retVal.setName(String.format("circular %d w/reset", stateNum));
 
-        return retVal;
-    }
+		String resetAction = "reset";
+		retVal.addAction(resetAction);
+		IntStream.rangeClosed(1, stateNum)
+				.forEach(i -> retVal.addTransitionFrom(i).action(resetAction).to(1));
 
-    /**
-     * Creates a circular transition system, with the states starting from
-     * {@code s1} to {@code s<num>} and the actions going from {@code a1} to
-     * {@code a<num>}, and a reset action that goes to {@code s1} from every
-     * state.
-     *
-     * @param stateNum number of states in the generated system.
-     * @return A circular transition system with a "reset" action.
-     */
-    public static TransitionSystem<Integer, String, String> makeCircularTsWithReset(int stateNum) {
-        TransitionSystem<Integer, String, String> retVal = makeCircularTs(stateNum);
+		return retVal;
+	}
 
-        retVal.setName(String.format("circular %d w/reset", stateNum));
+	/**
+	 * Creates a transition system that has an indeterministic 3-fork at
+	 * {@code statenum-3}. Branch states are {@code s_<b>_<i>}, where {@code b}
+	 * is the branch number. Indeterministic action is {@code fork}.
+	 *
+	 * @param pathLength
+	 * @param branchCount
+	 * @return
+	 */
+	public static TransitionSystem<String, String, String> makeBranchingTs(int pathLength, int branchCount)
+	{
+		TransitionSystem<String, String, String> retVal = makeLinearTs(pathLength, i -> "s" + i);
 
-        String resetAction = "reset";
-        retVal.addAction(resetAction);
-        IntStream.rangeClosed(1, stateNum)
-                .forEach(i -> retVal.addTransitionFrom(i).action(resetAction).to(1));
+		retVal.setName(String.format("branching %d/%d", pathLength, branchCount));
 
-        return retVal;
-    }
+		int branchPoint = pathLength - 3;
 
-    /**
-     * Creates a transition system that has an indeterministic 3-fork at
-     * {@code statenum-3}. Branch states are {@code s_<b>_<i>}, where {@code b}
-     * is the branch number. Indeterministic action is {@code fork}.
-     *
-     * @param pathLength
-     * @param branchCount
-     * @return
-     */
-    public static TransitionSystem<String, String, String> makeBranchingTs(int pathLength, int branchCount) {
-        TransitionSystem<String, String, String> retVal = makeLinearTs(pathLength, i -> "s" + i);
+		retVal.addAction("fork");
 
-        retVal.setName(String.format("branching %d/%d", pathLength, branchCount));
+		IntStream.rangeClosed(1, branchCount).forEach(branchNum ->
+		{
+			final String statePrefix = "s_" + branchNum + "_";
 
-        int branchPoint = pathLength - 3;
+			IntStream.rangeClosed(branchPoint + 1, pathLength).forEach(i -> retVal.addState(statePrefix + i));
 
-        retVal.addAction("fork");
+			IntStream.rangeClosed(branchPoint + 1, pathLength - 1)
+					.forEach(i -> retVal.addTransitionFrom(statePrefix + i).action("a" + i).to(statePrefix + (i + 1)));
 
-        IntStream.rangeClosed(1, branchCount).forEach(branchNum -> {
-            final String statePrefix = "s_" + branchNum + "_";
+			retVal.addTransitionFrom("s" + branchPoint).action("fork").to(statePrefix + (branchPoint + 1));
+		});
 
-            IntStream.rangeClosed(branchPoint + 1, pathLength).forEach(i -> retVal.addState(statePrefix + i));
+		return retVal;
+	}
 
-            IntStream.rangeClosed(branchPoint + 1, pathLength - 1)
-                    .forEach(i -> retVal.addTransitionFrom(statePrefix + i).action("a" + i).to(statePrefix + (i + 1)));
+	public static enum Actions
+	{
+		alpha, beta, gamma, delta, epsilon, zeta, eta, theta
+	}
 
-            retVal.addTransitionFrom("s" + branchPoint).action("fork").to(statePrefix + (branchPoint + 1));
-        });
+	public static enum States
+	{
+		a, b, c, d, e, f, g
+	}
 
-        return retVal;
-    }
+	public static enum APs
+	{
+		P, Q, R, S
+	}
 
 }
