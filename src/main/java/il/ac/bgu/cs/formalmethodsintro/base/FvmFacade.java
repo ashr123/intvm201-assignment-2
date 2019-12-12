@@ -56,10 +56,14 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts)
 	{
-		return ts.getInitialStates().size() < 2 &&
-				ts.getStates().parallelStream()
-						.noneMatch(state -> ts.getActions().parallelStream()
-								.anyMatch(action -> post(ts, state, action).size() > 1));
+		if (ts.getInitialStates().size() > 1)
+			return false;
+		for (S state : ts.getStates()) {
+			for (A action : ts.getActions())
+				if (post(ts, state, action).size() > 1)
+					return false;
+		}
+		return true;
 	}
 
 	/**
@@ -76,9 +80,14 @@ public class FvmFacade
 	{
 		if (ts.getInitialStates().size() > 1)
 			return false;
-		for (S state : ts.getStates())
-			if (post(ts, state).size() != post(ts, state).stream().map(ts::getLabel).collect(Collectors.toSet()).size())
+		for (S state : ts.getStates()) {
+			Set<Set<P>> LStateTag = new HashSet<Set<P>>();
+			for (S statePost : post(ts, state)) {
+				LStateTag.add(ts.getLabel(statePost));
+			}
+			if(post(ts, state).size() != LStateTag.size())
 				return false;
+		}
 		return true;
 	}
 
