@@ -1,12 +1,6 @@
 package il.ac.bgu.cs.formalmethodsintro.base.transitionsystem;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.DeletionOfAttachedActionException;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.DeletionOfAttachedAtomicPropositionException;
@@ -78,13 +72,10 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 */
 	public void removeAction(ACTION action) throws FVMException
 	{
-		for (var t : transitions)
+		transitions.parallelStream().filter(t -> t.getAction().equals(action)).forEach(t ->
 		{
-			if (t.getAction().equals(action))
-			{
-				throw new DeletionOfAttachedActionException(action, TransitionSystemPart.TRANSITIONS);
-			}
-		}
+			throw new DeletionOfAttachedActionException(action, TransitionSystemPart.TRANSITIONS);
+		});
 
 		actions.remove(action);
 	}
@@ -97,9 +88,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	public void addState(STATE state)
 	{
 		if (state == null)
-		{
 			throw new IllegalArgumentException("Cannot add a null state");
-		}
 		states.add(state);
 	}
 
@@ -109,8 +98,8 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 * mandatory - it is added to the system it not.
 	 *
 	 * @param aState    A state to add to the set of initial states.
-	 * @param isInitial Whether {@code state} should be an initial state of
-	 *                  {@code this}.
+//	 * @param isInitial Whether {@code state} should be an initial state of
+//	 *                  {@code this}.
 	 */
 	public void addInitialState(STATE aState)
 	{
@@ -162,7 +151,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 */
 	public void removeState(STATE state) throws FVMException
 	{
-		transitions.stream()
+		transitions.parallelStream()
 				.filter((t) -> (t.getFrom().equals(state) || t.getTo().equals(state)))
 				.findFirst().map(t ->
 		{
@@ -235,9 +224,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	public void addAtomicProposition(ATOMIC_PROPOSITION p)
 	{
 		if (p == null)
-		{
 			throw new IllegalArgumentException("Cannot add a null proposition");
-		}
 		atomicPropositions.add(p);
 	}
 
@@ -259,7 +246,8 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 */
 	public void removeAtomicProposition(ATOMIC_PROPOSITION p) throws FVMException
 	{
-		labelingFunction.values().stream().flatMap(s -> s.stream())
+		labelingFunction.values().parallelStream()
+				.flatMap(Collection::stream)
 				.filter(ap -> ap.equals(p))
 				.findFirst().ifPresent(ap ->
 		{
@@ -280,13 +268,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	{
 		addState(s);
 		addAtomicProposition(l);
-		Set<ATOMIC_PROPOSITION> labelSet = labelingFunction.get(s);
-
-		if (labelSet == null)
-		{
-			labelSet = new HashSet<>();
-			labelingFunction.put(s, labelSet);
-		}
+		Set<ATOMIC_PROPOSITION> labelSet = labelingFunction.computeIfAbsent(s, k -> new HashSet<>());
 
 		labelSet.add(l);
 	}
@@ -303,12 +285,8 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	public Set<ATOMIC_PROPOSITION> getLabel(STATE aState)
 	{
 		if (states.contains(aState))
-		{
 			return labelingFunction.getOrDefault(aState, Collections.emptySet());
-		} else
-		{
-			throw new StateNotFoundException("State " + aState + " not found");
-		}
+		throw new StateNotFoundException("State " + aState + " not found");
 	}
 
 	/**
@@ -368,30 +346,13 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 			return false;
 		}
 		@SuppressWarnings("rawtypes") final TransitionSystem other = (TransitionSystem) obj;
-		if (!Objects.equals(getName(), other.getName()))
-		{
+		if (!(Objects.equals(getName(), other.getName()) &&
+				Objects.equals(getStates(), other.getStates()) &&
+				Objects.equals(getActions(), other.getActions()) &&
+				Objects.equals(getTransitions(), other.getTransitions()) &&
+				Objects.equals(getInitialStates(), other.getInitialStates()) &&
+				Objects.equals(getAtomicPropositions(), other.getAtomicPropositions())))
 			return false;
-		}
-		if (!Objects.equals(getStates(), other.getStates()))
-		{
-			return false;
-		}
-		if (!Objects.equals(getActions(), other.getActions()))
-		{
-			return false;
-		}
-		if (!Objects.equals(getTransitions(), other.getTransitions()))
-		{
-			return false;
-		}
-		if (!Objects.equals(getInitialStates(), other.getInitialStates()))
-		{
-			return false;
-		}
-		if (!Objects.equals(getAtomicPropositions(), other.getAtomicPropositions()))
-		{
-			return false;
-		}
 		return Objects.equals(getLabelingFunction(), other.getLabelingFunction());
 	}
 
@@ -420,9 +381,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	public void addAllStates(STATE states[])
 	{
 		for (STATE s : states)
-		{
 			addState(s);
-		}
 	}
 
 	public void addAllStates(Iterable<STATE> states)
@@ -442,7 +401,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 		}
 	}
 
-	public void addAllActions(ACTION actions[])
+	public void addAllActions(ACTION[] actions)
 	{
 		for (ACTION a : actions)
 		{

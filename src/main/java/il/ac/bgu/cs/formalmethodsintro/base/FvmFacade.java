@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import il.ac.bgu.cs.formalmethodsintro.base.automata.Automaton;
 import il.ac.bgu.cs.formalmethodsintro.base.automata.MultiColorAutomaton;
@@ -16,6 +17,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ActionDef;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ConditionDef;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ProgramGraph;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.AlternatingSequence;
+import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.util.Pair;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
@@ -23,7 +25,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 /**
  * Interface for the entry point class to the HW in this class. Our
  * client/testing code interfaces with the student solutions through this
- * interface only. <br>
+ * interface only.<br>
  * More about facade: <a href="http://www.vincehuston.org/dp/facade.html">http://www.vincehuston.org/dp/facade.html</a>.
  */
 public class FvmFacade
@@ -37,9 +39,7 @@ public class FvmFacade
 	public static FvmFacade get()
 	{
 		if (INSTANCE == null)
-		{
 			INSTANCE = new FvmFacade();
-		}
 		return INSTANCE;
 	}
 
@@ -56,15 +56,10 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts)
 	{
-		if (ts.getInitialStates().size() > 1)
-			return false;
-		for (S state : ts.getStates()) {
-			for (A action : ts.getActions()) {
-				if (post(ts, state, action).size() > 1)
-					return false;
-			}
-		}
-		return true;
+		return ts.getInitialStates().size() < 2 &&
+				ts.getStates().parallelStream()
+						.noneMatch(state -> ts.getActions().parallelStream()
+								.anyMatch(action -> post(ts, state, action).size() > 1));
 	}
 
 	/**
@@ -81,14 +76,9 @@ public class FvmFacade
 	{
 		if (ts.getInitialStates().size() > 1)
 			return false;
-		for (S state : ts.getStates()) {
-			Set<Set<P>> LStateTag = new HashSet<Set<P>>();
-			for (S statePost : post(ts, state)) {
-				LStateTag.add(ts.getLabel(statePost));
-			}
-			if(post(ts, state).size() != LStateTag.size())
+		for (S state : ts.getStates())
+			if (post(ts, state).size() != post(ts, state).stream().map(ts::getLabel).collect(Collectors.toSet()).size())
 				return false;
-		}
 		return true;
 	}
 
@@ -105,7 +95,8 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		return isInitialExecutionFragment(ts, e) && isMaximalExecutionFragment(ts, e);
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -123,7 +114,20 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (e.isEmpty())
+			return true;
+		AlternatingSequence<A, S> eNext = e.tail();
+		if (eNext.isEmpty())
+			return false;
+		A a1 = eNext.head();
+		AlternatingSequence<S, A> eNext2 = eNext.tail();
+		if (eNext2.isEmpty())
+			return false;
+		S s1 = eNext2.head();
+		if (ts.getTransitions().contains(new TSTransition<>(e.head(), a1, s1)))
+			return isExecutionFragment(ts, eNext2);
+		return false;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -141,7 +145,8 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		return ts.getInitialStates().contains(e.head());
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -158,7 +163,8 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isMaximalExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		return isStateTerminal(ts, e.last()) && isExecutionFragment(ts, e);
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -173,7 +179,8 @@ public class FvmFacade
 	 */
 	public <S, A> boolean isStateTerminal(TransitionSystem<S, A, ?> ts, S s)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		return post(ts, s).isEmpty();
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -185,7 +192,10 @@ public class FvmFacade
 	 */
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, S s)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (!ts.getStates().contains(s))
+			throw new StateNotFoundException(s);
+		return ts.getTransitions().parallelStream().filter(tsTransition -> tsTransition.getFrom().equals(s)).map(TSTransition::getTo).collect(Collectors.toSet());
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -198,7 +208,10 @@ public class FvmFacade
 	 */
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		Set<S> states = new HashSet<>();
+		c.parallelStream().map(state -> post(ts, state)).forEach(states::addAll);
+		return states;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -213,7 +226,11 @@ public class FvmFacade
 	 */
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (!ts.getStates().contains(s))
+			throw new StateNotFoundException(s);
+		return ts.getTransitions().parallelStream().filter(tsTransition -> tsTransition.getFrom().equals(s) &&
+				tsTransition.getAction().equals(a)).map(TSTransition::getTo).collect(Collectors.toSet());
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -227,7 +244,10 @@ public class FvmFacade
 	 */
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		Set<S> states = new HashSet<>();
+		c.parallelStream().map(state -> post(ts, state, a)).forEach(states::addAll);
+		return states;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -238,7 +258,10 @@ public class FvmFacade
 	 */
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (!ts.getStates().contains(s))
+			throw new StateNotFoundException(s);
+		return ts.getTransitions().parallelStream().filter(tsTransition -> tsTransition.getTo().equals(s)).map(TSTransition::getFrom).collect(Collectors.toSet());
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -251,7 +274,10 @@ public class FvmFacade
 	 */
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		Set<S> states = new HashSet<>();
+		c.parallelStream().map(state -> pre(ts, state)).forEach(states::addAll);
+		return states;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -266,7 +292,11 @@ public class FvmFacade
 	 */
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		if (!ts.getStates().contains(s))
+			throw new StateNotFoundException(s);
+		return ts.getTransitions().parallelStream().filter(tsTransition -> tsTransition.getTo().equals(s) &&
+				tsTransition.getAction().equals(a)).map(TSTransition::getFrom).collect(Collectors.toSet());
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -281,7 +311,10 @@ public class FvmFacade
 	 */
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		Set<S> states = new HashSet<>();
+		c.parallelStream().map(state -> pre(ts, state, a)).forEach(states::addAll);
+		return states;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**

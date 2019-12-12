@@ -3,12 +3,7 @@ package il.ac.bgu.cs.formalmethodsintro.base.util;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.joining;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -52,7 +47,7 @@ public class GraphvizPainter<S, A, P>
 	{
 		return new GraphvizPainter<>(
 				(Pair<Map<String, Boolean>, Map<String, Boolean>> state) -> mapValues(state.first) + mapValues(state.second),
-				(Map<String, Boolean> act) -> mapValues(act),
+				GraphvizPainter::mapValues,
 				Object::toString
 		);
 	}
@@ -75,7 +70,7 @@ public class GraphvizPainter<S, A, P>
 
 		int idx = 1;
 		List<S> sortedStates = new ArrayList<>(ts.getStates());
-		Collections.sort(sortedStates, (s1, s2) -> statePainter.apply(s1).compareTo(statePainter.apply(s2)));
+		sortedStates.sort(Comparator.comparing(statePainter));
 		for (S s : sortedStates)
 		{
 			String id = "s" + (idx++);
@@ -132,7 +127,7 @@ public class GraphvizPainter<S, A, P>
 				{
 					// make AP node
 					String apNodeId = "ap_" + idByState.get(s);
-					String title = ts.getLabelingFunction().get(s).stream().map(apPainter::apply)
+					String title = ts.getLabelingFunction().get(s).stream().map(apPainter)
 							.collect(Collectors.joining("\\n"));
 					sb.append(apNodeId).append(" [label=\"").append(title).append("\"];\n");
 					// connect AP node to s

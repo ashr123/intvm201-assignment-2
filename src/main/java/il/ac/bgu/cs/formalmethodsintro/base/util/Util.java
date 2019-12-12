@@ -31,7 +31,7 @@ public class Util
 		Stream<Set<T>> stream = powerSetMemberIdxs.parallel().mapToObj(e ->
 		{
 			IntStream range2 = IntStream.range(0, orderedItems.size());
-			return range2.filter(i -> (e & (0b1 << i)) != 0).mapToObj(i -> orderedItems.get(i)).collect(Collectors.toSet());
+			return range2.filter(i -> (e & (0b1 << i)) != 0).mapToObj(orderedItems::get).collect(Collectors.toSet());
 		});
 
 		return stream.collect(Collectors.toSet());
@@ -48,7 +48,7 @@ public class Util
 	}
 
 	/**
-	 * @param gnba
+	 * @param nba
 	 */
 	public static <S, L> void printAutomatonTransitions(Automaton<S, L> nba)
 	{

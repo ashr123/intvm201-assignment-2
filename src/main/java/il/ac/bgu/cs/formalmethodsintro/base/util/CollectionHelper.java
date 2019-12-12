@@ -55,8 +55,7 @@ public class CollectionHelper
 	@SuppressWarnings("unchecked")
 	public static <K, V> Map<K, V> map(Pair<K, V>... pairs)
 	{
-		return IntStream.range(0, pairs.length)
-				.mapToObj(i -> pairs[i])
+		return Arrays.stream(pairs, 0, pairs.length)
 				.collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
 	}
 

@@ -29,10 +29,10 @@ public class AlternatingSequence<S, A>
 		}
 		List<Object> itemsBuilder = new ArrayList<>(states.size() + actions.size());
 		Iterator<?> sts = states.iterator();
-		for (Iterator<?> acts = actions.iterator(); acts.hasNext(); )
+		for (A action : actions)
 		{
 			itemsBuilder.add(sts.next());
-			itemsBuilder.add(acts.next());
+			itemsBuilder.add(action);
 		}
 		itemsBuilder.add(sts.next());
 		items = Collections.unmodifiableList(itemsBuilder);

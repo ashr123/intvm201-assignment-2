@@ -138,11 +138,11 @@ public class StAXTransitionSystemXmlFormat implements TransitionSystemXmlFormat
 		out.writeEndElement();
 
 		out.writeStartElement(kLabelingFunction);
-		ts.getLabelingFunction().entrySet().forEach(ent -> wrapExceptions(() ->
+		ts.getLabelingFunction().forEach((key, value) -> wrapExceptions(() ->
 		{
 			out.writeStartElement(kEntry);
-			out.writeAttribute(attState, ent.getKey());
-			ent.getValue().forEach(lbl -> wrapExceptions(() ->
+			out.writeAttribute(attState, key);
+			value.forEach(lbl -> wrapExceptions(() ->
 			{
 				out.writeEmptyElement(kLabel);
 				out.writeAttribute(attAP, apIdMap.get(lbl));

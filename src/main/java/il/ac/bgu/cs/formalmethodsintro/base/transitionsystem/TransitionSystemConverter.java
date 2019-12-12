@@ -48,7 +48,7 @@ public class TransitionSystemConverter<S1, S2, A1, A2, P1, P2>
 		original.getLabelingFunction()
 				.forEach((s, l) ->
 				{
-					l.stream().map(apConverter::apply)
+					l.stream().map(apConverter)
 							.forEach(ap -> result.addToLabel(states.get(s), ap));
 				});
 
