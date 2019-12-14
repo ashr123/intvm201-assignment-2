@@ -2,6 +2,7 @@ package il.ac.bgu.cs.formalmethodsintro.base;
 
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import il.ac.bgu.cs.formalmethodsintro.base.automata.Automaton;
@@ -385,31 +386,70 @@ public class FvmFacade
 	 * @param ts2  The second transition system.
 	 * @return A transition system that represents the product of the two.
 	 */
+	@SuppressWarnings("unchecked")
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
 	                                                                      TransitionSystem<S2, A, P> ts2)
 	{
-//		final TransitionSystem<Pair<S1, S2>, A, P> ts = new TransitionSystem<>();
-//		ts1.getStates()
-//				.forEach(s1 -> ts2.getStates().stream()
-//						.map(s2 -> new Pair<>(s1, s2))
-//						.forEach(pair -> {
+		final TransitionSystem<Pair<S1, S2>, A, P> ts = new TransitionSystem<>();
+		ts1.getStates()
+				.forEach(s1 -> ts2.getStates().stream()
+						.map(s2 -> new Pair<>(s1, s2))
+						.forEach(pair ->
+						{
 //							ts.addState(pair);
-//							ts.addToLabel(pair, ts1.getLabel(pair.first));
-//						}));
-//
-//		ts.addAllActions(ts1.getActions().iterator());
-//		ts.addAllActions(ts2.getActions().iterator());
-//
-//		/*→*/
-//
-//		ts1.getInitialStates()
-//				.forEach(s1 -> ts2.getInitialStates().stream()
-//						.map(s2 -> new Pair<>(s1, s2))
-//						.forEach(ts::addInitialState));
+							final Consumer<P> pConsumer = label -> ts.addToLabel(pair, label);
+							ts1.getLabel(pair.getFirst()).forEach(pConsumer);
+							ts2.getLabel(pair.getSecond()).forEach(pConsumer); // S₁×S₂, AP₁∪AP₂, L(⟨s₁, s₂⟩)=L₁(s₁)∪L₂(s₂)
+//							ts.getLabelingFunction().put(pair, new HashSet<>(ts1.getLabel(pair.getFirst())));
+						}));
+
+		ts.addAllActions((A[]) ts1.getActions().toArray());
+		ts.addAllActions((A[]) ts2.getActions().toArray()); // Act₁∪Act₂
+
+		/*→*/
+//		for (TSTransition<S1, A> transition : ts1.getTransitions()) // example for TS₁
+//		{
+//			Set<Pair<S1, S2>>
+//					fromPairs = ts.getStates().stream()
+//					.filter(pair -> pair.getFirst().equals(transition.getFrom()))
+//					.collect(Collectors.toSet()),
+//					toPairs = ts.getStates().stream()
+//							.filter(pair -> pair.getFirst().equals(transition.getTo()))
+//							.collect(Collectors.toSet());
+//			for (Pair<S1, S2> fromPair : fromPairs)
+//				for (Pair<S1, S2> toPair : toPairs)
+//					if (fromPair.getSecond().equals(toPair.getSecond()))
+//						ts.addTransition(new TSTransition<>(fromPair, transition.getAction(), toPair));
+//		}
+		ts1.getTransitions()
+				.forEach(transition -> ts.getStates().stream()
+						.filter(pair -> pair.getFirst().equals(transition.getFrom()))
+						.forEach(fromPair -> ts.getStates().stream()
+								.filter(toPair -> toPair.getFirst().equals(transition.getTo()) &&
+										toPair.getSecond().equals(fromPair.getSecond()))
+								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
+								.forEach(ts::addTransition))); /*→*/
+		ts2.getTransitions()
+				.forEach(transition -> ts.getStates().stream()
+						.filter(pair -> pair.getSecond().equals(transition.getFrom()))
+						.forEach(fromPair -> ts.getStates().stream()
+								.filter(toPair -> toPair.getSecond().equals(transition.getTo()) &&
+										toPair.getFirst().equals(fromPair.getFirst()))
+								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
+								.forEach(ts::addTransition))); /*→*/
+
+		ts1.getInitialStates()
+				.forEach(s1 -> ts2.getInitialStates().stream()
+						.map(s2 -> new Pair<>(s1, s2))
+						.forEach(ts::addInitialState)); // I₁×I₂
 //
 //		ts1.getAtomicPropositions().forEach(ts::addAtomicProposition);
 //		ts2.getAtomicPropositions().forEach(ts::addAtomicProposition);
 
+//		ts.setName(ts1.getName()+'⫼'+ts2.getName());
+		ts.setName(ts1.getName()+"|||"+ts2.getName());
+
+		return ts;
 //		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -426,7 +466,8 @@ public class FvmFacade
 	 * @return A transition system that represents the product of the two.
 	 */
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
-	                                                                      TransitionSystem<S2, A, P> ts2, Set<A> handShakingActions)
+	                                                                      TransitionSystem<S2, A, P> ts2,
+	                                                                      Set<A> handShakingActions)
 	{
 		throw new java.lang.UnsupportedOperationException();
 	}
