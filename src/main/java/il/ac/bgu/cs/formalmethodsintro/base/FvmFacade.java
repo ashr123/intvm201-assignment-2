@@ -13,12 +13,17 @@ import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ActionDef;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ConditionDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedActDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedCondDef;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ProgramGraph;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.util.Pair;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
+
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Interface for the entry point class to the HW in this class. Our
@@ -447,7 +452,7 @@ public class FvmFacade
 //		ts2.getAtomicPropositions().forEach(ts::addAtomicProposition);
 
 //		ts.setName(ts1.getName()+'⫼'+ts2.getName());
-		ts.setName(ts1.getName()+"|||"+ts2.getName());
+		ts.setName(ts1.getName() + "|||" + ts2.getName());
 
 		return ts;
 //		throw new java.lang.UnsupportedOperationException();
