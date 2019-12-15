@@ -6,11 +6,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ChannelSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ActionDef;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ConditionDef;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedActDef;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedCondDef;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ProgramGraph;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.*;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
@@ -513,8 +509,49 @@ public class FvmFacade
 	 */
 	public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2)
 	{
+		final ProgramGraph<Pair<L1, L2>, A> pg = createProgramGraph();
 
-		throw new java.lang.UnsupportedOperationException();
+		pg1.getLocations()
+				.forEach(l1 -> pg2.getLocations().stream()
+						.map(l2 -> new Pair<>(l1, l2))
+						.forEach(pair ->
+						{
+							pg.addLocation(pair);
+							pg.setInitial(pair, pg1.getInitialLocations().contains(pair.getFirst()) && pg2.getInitialLocations().contains(pair.getSecond())); // I₁×I₂
+						}));
+
+		pg1.getTransitions()
+				.forEach(transition -> pg.getLocations().stream()
+						.filter(pair -> pair.getFirst().equals(transition.getFrom()))
+						.forEach(fromPair -> pg.getLocations().stream()
+								.filter(pair -> pair.getFirst().equals(transition.getTo()) &&
+										pair.getSecond().equals(fromPair.getSecond()))
+								.map(toPair -> new PGTransition(fromPair, transition.getCondition(), transition.getAction(), toPair))
+								.forEach(pg::addTransition))); /*→*/
+
+		pg2.getTransitions()
+				.forEach(transition -> pg.getLocations().stream()
+						.filter(pair -> pair.getSecond().equals(transition.getFrom()))
+						.forEach(fromPair -> pg.getLocations().stream()
+								.filter(pair -> pair.getSecond().equals(transition.getTo()) &&
+										pair.getFirst().equals(fromPair.getFirst()))
+								.map(toPair -> new PGTransition<>(fromPair, transition.getCondition(), transition.getAction(), toPair))
+								.forEach(pg::addTransition))); /*→*/
+
+		pg1.getInitalizations()
+				.forEach(i1 -> pg2.getInitalizations().stream()
+						.map(i2 -> {
+							List<String> concatList =new ArrayList<>(i1);
+							concatList.addAll(i2);
+							return concatList;
+						})
+						.forEach(pg::addInitalization));
+
+		pg.setName(pg1.getName() + "||" + pg2.getName());//Update to Roy's favourite.
+
+		return pg;
+
+		//throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
