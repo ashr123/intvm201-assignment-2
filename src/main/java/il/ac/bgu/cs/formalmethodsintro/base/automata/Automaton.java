@@ -32,95 +32,101 @@ import org.svvrl.goal.core.io.OldGFFCodec;
  * @param <State> Type of states.
  * @param <Sigma> Type of transitions/alphabet the automaton understands.
  */
-public class Automaton<State, Sigma> extends MultiColorAutomaton<State, Sigma> {
+public class Automaton<State, Sigma> extends MultiColorAutomaton<State, Sigma>
+{
 
-    public void setAccepting(State s) {
-        super.setAccepting(s, 0);
-    }
+	public void setAccepting(State s)
+	{
+		super.setAccepting(s, 0);
+	}
 
-    public Set<State> getAcceptingStates() {
-        return super.getAcceptingStates(0);
-    }
+	public Set<State> getAcceptingStates()
+	{
+		return super.getAcceptingStates(0);
+	}
 
-    public boolean isEquivalentTo(Automaton<?, Sigma> other) throws EvaluationException, Exception {
-        AutomatonIO.write((Automaton<?, Sigma>) other, "other.gff");
-        AutomatonIO.write(this, "this.gff");
+	public boolean isEquivalentTo(Automaton<?, Sigma> other) throws EvaluationException, Exception
+	{
+		AutomatonIO.write((Automaton<?, Sigma>) other, "other.gff");
+		AutomatonIO.write(this, "this.gff");
 
-        Context context = new Context();
+		Context context = new Context();
 
-        Constant con1 = new Constant("this.gff");
-        Constant con2 = new Constant("other.gff");
+		Constant con1 = new Constant("this.gff");
+		Constant con2 = new Constant("other.gff");
 
-        Lval lval1 = new Lval("th", new Expression[]{});
-        Lval lval2 = new Lval("ot", new Expression[]{});
+		Lval lval1 = new Lval("th", new Expression[]{});
+		Lval lval2 = new Lval("ot", new Expression[]{});
 
-        // CodecRepository..add(0, new GFFCodec());
-        CodecRepository.add(0, new OldGFFCodec());
+		// CodecRepository..add(0, new GFFCodec());
+		CodecRepository.add(0, new OldGFFCodec());
 
-        SimulationRepository.addSimulation2("RefinedSimilarity", FSA.class, RefinedSimulation2.class);
-        SimulationRepository.addSimulation("RefinedSimilarity", FSA.class, RefinedSimulation.class);
+		SimulationRepository.addSimulation2("RefinedSimilarity", FSA.class, RefinedSimulation2.class);
+		SimulationRepository.addSimulation("RefinedSimilarity", FSA.class, RefinedSimulation.class);
 
-        ComplementRepository.add("Safra-Piterman Construction", PitermanConstruction.class);
+		ComplementRepository.add("Safra-Piterman Construction", PitermanConstruction.class);
 
-        LoadCommand lc1 = new LoadCommand(asList(lval1, con1));
-        lc1.eval(context);
+		LoadCommand lc1 = new LoadCommand(asList(lval1, con1));
+		lc1.eval(context);
 
-        LoadCommand lc2 = new LoadCommand(asList(lval2, con2));
-        lc2.eval(context);
+		LoadCommand lc2 = new LoadCommand(asList(lval2, con2));
+		lc2.eval(context);
 
-        EquivalenceCommand ec = new EquivalenceCommand(asList(lval1, lval2));
+		EquivalenceCommand ec = new EquivalenceCommand(asList(lval1, lval2));
 
-        return (Boolean) ec.eval(context);
+		return (Boolean) ec.eval(context);
 
-    }
+	}
 
-    public boolean isEquivalentTo(String serializedAutomaton) {
-        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\r\n"
-                + "<logic name=\"QPTL\">\r\n <name/>\r\n <description/>\r\n <formula>"
-                + serializedAutomaton + "</formula>\r\n</logic>\r\n";
+	public boolean isEquivalentTo(String serializedAutomaton)
+	{
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\r\n"
+				+ "<logic name=\"QPTL\">\r\n <name/>\r\n <description/>\r\n <formula>"
+				+ serializedAutomaton + "</formula>\r\n</logic>\r\n";
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("formula.gff"))) {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter("formula.gff")))
+		{
 
-            writer.write(xml);
-            writer.close();
+			writer.write(xml);
+			writer.close();
 
-            AutomatonIO.write(this, "this.gff");
+			AutomatonIO.write(this, "this.gff");
 
-            Context context = new Context();
+			Context context = new Context();
 
-            Constant con1 = new Constant("this.gff");
-            Constant con3 = new Constant("formula.gff");
+			Constant con1 = new Constant("this.gff");
+			Constant con3 = new Constant("formula.gff");
 
-            Lval lval1 = new Lval("th", new Expression[]{});
-            Lval lval3 = new Lval("fo", new Expression[]{});
+			Lval lval1 = new Lval("th", new Expression[]{});
+			Lval lval3 = new Lval("fo", new Expression[]{});
 
-            //CodecRepository.add(0, new GFFCodec());
-            CodecRepository.add(0, new FSACodec());
-            
-            
-            SimulationRepository.addSimulation2("RefinedSimilarity", FSA.class, RefinedSimulation2.class);
-            SimulationRepository.addSimulation("RefinedSimilarity", FSA.class, RefinedSimulation.class);
+			//CodecRepository.add(0, new GFFCodec());
+			CodecRepository.add(0, new FSACodec());
 
-            ComplementRepository.add("Safra-Piterman Construction", PitermanConstruction.class);
 
-            LoadCommand lc1 = new LoadCommand(asList(lval1, con1));
-            lc1.eval(context);
+			SimulationRepository.addSimulation2("RefinedSimilarity", FSA.class, RefinedSimulation2.class);
+			SimulationRepository.addSimulation("RefinedSimilarity", FSA.class, RefinedSimulation.class);
 
-            LoadCommand lc3 = new LoadCommand(asList(lval3, con3));
-            lc3.eval(context);
+			ComplementRepository.add("Safra-Piterman Construction", PitermanConstruction.class);
 
-            TranslateCommand tc = new TranslateCommand(asList(lval3));
-            tc.eval(context);
+			LoadCommand lc1 = new LoadCommand(asList(lval1, con1));
+			lc1.eval(context);
 
-            EquivalenceCommand ec = new EquivalenceCommand(asList(lval1, tc));
+			LoadCommand lc3 = new LoadCommand(asList(lval3, con3));
+			lc3.eval(context);
 
-            return (Boolean) ec.eval(context);
+			TranslateCommand tc = new TranslateCommand(asList(lval3));
+			tc.eval(context);
 
-        }
-        catch (Exception e) {
-            e.printStackTrace(System.err);
-            return false;
-        }
-    }
+			EquivalenceCommand ec = new EquivalenceCommand(asList(lval1, tc));
+
+			return (Boolean) ec.eval(context);
+
+		} catch (Exception e)
+		{
+			e.printStackTrace(System.err);
+			return false;
+		}
+	}
 
 }
