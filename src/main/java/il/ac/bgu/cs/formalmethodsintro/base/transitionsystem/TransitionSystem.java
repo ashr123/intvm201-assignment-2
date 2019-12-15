@@ -378,7 +378,7 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 		}
 	}
 
-	public void addAllStates(STATE states[])
+	public void addAllStates(STATE[] states)
 	{
 		for (STATE s : states)
 			addState(s);

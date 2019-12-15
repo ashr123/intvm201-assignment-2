@@ -18,13 +18,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.util.Pair;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -394,7 +388,6 @@ public class FvmFacade
 	 * @param ts2  The second transition system.
 	 * @return A transition system that represents the product of the two.
 	 */
-	@SuppressWarnings("unchecked")
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
 	                                                                      TransitionSystem<S2, A, P> ts2)
 	{
@@ -404,15 +397,16 @@ public class FvmFacade
 						.map(s2 -> new Pair<>(s1, s2))
 						.forEach(pair ->
 						{
-//							ts.addState(pair);
+							if (ts1.getInitialStates().contains(pair.getFirst()) &&
+									ts2.getInitialStates().contains(pair.getSecond()))
+								ts.addInitialState(pair); // I₁×I₂
 							final Consumer<P> pConsumer = label -> ts.addToLabel(pair, label);
 							ts1.getLabel(pair.getFirst()).forEach(pConsumer);
 							ts2.getLabel(pair.getSecond()).forEach(pConsumer); // S₁×S₂, AP₁∪AP₂, L(⟨s₁, s₂⟩)=L₁(s₁)∪L₂(s₂)
-//							ts.getLabelingFunction().put(pair, new HashSet<>(ts1.getLabel(pair.getFirst())));
 						}));
 
-		ts.addAllActions((A[]) ts1.getActions().toArray());
-		ts.addAllActions((A[]) ts2.getActions().toArray()); // Act₁∪Act₂
+		ts.addAllActions(ts1.getActions());
+		ts.addAllActions(ts2.getActions()); // Act₁∪Act₂
 
 		/*→*/
 //		for (TSTransition<S1, A> transition : ts1.getTransitions()) // example for TS₁
@@ -446,16 +440,16 @@ public class FvmFacade
 								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
 								.forEach(ts::addTransition))); /*→*/
 
-		ts1.getInitialStates()
-				.forEach(s1 -> ts2.getInitialStates().stream()
-						.map(s2 -> new Pair<>(s1, s2))
-						.forEach(ts::addInitialState)); // I₁×I₂
+//		ts1.getInitialStates()
+//				.forEach(s1 -> ts2.getInitialStates().stream()
+//						.map(s2 -> new Pair<>(s1, s2))
+//						.forEach(ts::addInitialState)); // I₁×I₂
 //
 //		ts1.getAtomicPropositions().forEach(ts::addAtomicProposition);
 //		ts2.getAtomicPropositions().forEach(ts::addAtomicProposition);
 
-//		ts.setName(ts1.getName()+'⫼'+ts2.getName());
-		ts.setName(ts1.getName() + "|||" + ts2.getName());
+		ts.setName(ts1.getName() + '⫼' + ts2.getName());
+//		ts.setName(ts1.getName() + "|||" + ts2.getName());
 
 		return ts;
 //		throw new java.lang.UnsupportedOperationException();

@@ -85,8 +85,7 @@ The general process is to:
 1. Create a `+TransitionSystem+` instance, populate it as you like.
 2. Pass it to `+GraphvizPainter+` and call `+makeDotCode+`. There are multiple painters, and you can create your own (tell us if you do!). To get you started, the simplest invocation is to use `+toStringPainter+`, like so:
 `System.out.println( GraphvizPainter.toStringPainter().makeDotCode(ts) );`
-
-1. Now you have the graph description in the dot language. Use http://graphviz.org[Graphviz] to turn it into a drawing (we recommend PDF for any non-trivial system).
+3. Now you have the graph description in the dot language. Use http://graphviz.org[Graphviz] to turn it into a drawing (we recommend PDF for any non-trivial system).
 
 === If I lost points due to an error in my code in HW `+i+`, and I didn’t fix it, will I lose points again in HW `+i+1+`?
 
