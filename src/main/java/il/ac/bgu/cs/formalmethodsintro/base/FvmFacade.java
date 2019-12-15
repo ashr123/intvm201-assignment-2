@@ -133,10 +133,10 @@ public class FvmFacade
 	{
 		if (e.isEmpty())
 			return true;
-		AlternatingSequence<A, S> eNext = e.tail();
+		final AlternatingSequence<A, S> eNext = e.tail();
 		if (eNext.isEmpty())
 			return false;
-		AlternatingSequence<S, A> eNext2 = eNext.tail();
+		final AlternatingSequence<S, A> eNext2 = eNext.tail();
 		if (eNext2.isEmpty())
 			return false;
 		if (ts.getTransitions().contains(new TSTransition<>(e.head(), eNext.head(), eNext2.head())))
@@ -391,7 +391,28 @@ public class FvmFacade
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
 	                                                                      TransitionSystem<S2, A, P> ts2)
 	{
+		return interleave(ts1, ts2, Collections.emptySet());
+//		throw new java.lang.UnsupportedOperationException();
+	}
+
+	/**
+	 * Compute the synchronous product of two transition systems.
+	 *
+	 * @param <S1>               Type of states in the first system.
+	 * @param <S2>               Type of states in the first system.
+	 * @param <A>                Type of actions (in both systems).
+	 * @param <P>                Type of atomic propositions (in both systems).
+	 * @param ts1                The first transition system.
+	 * @param ts2                The second transition system.
+	 * @param handShakingActions Set of actions both systems perform together.
+	 * @return A transition system that represents the product of the two.
+	 */
+	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
+	                                                                      TransitionSystem<S2, A, P> ts2,
+	                                                                      Set<A> handShakingActions)
+	{
 		final TransitionSystem<Pair<S1, S2>, A, P> ts = new TransitionSystem<>();
+
 		ts1.getStates()
 				.forEach(s1 -> ts2.getStates().stream()
 						.map(s2 -> new Pair<>(s1, s2))
@@ -423,6 +444,19 @@ public class FvmFacade
 //					if (fromPair.getSecond().equals(toPair.getSecond()))
 //						ts.addTransition(new TSTransition<>(fromPair, transition.getAction(), toPair));
 //		}
+		handShakingActions.forEach(action -> ts1.getTransitions().stream()
+				.filter(transitionTS1 -> transitionTS1.getAction().equals(action))
+				.forEach(transitionTS1 -> ts2.getTransitions().stream()
+						.filter(transitionTS2 -> transitionTS2.getAction().equals(action) &&
+								transitionTS2.getAction().equals(transitionTS1.getAction()))
+						.forEach(transitionTS2 -> ts.getStates().stream()
+								.filter(fromPair -> fromPair.getFirst().equals(transitionTS1.getFrom()) &&
+										fromPair.getSecond().equals(transitionTS2.getFrom()))
+								.forEach(fromPair -> ts.getStates().stream()
+										.filter(toPair -> toPair.getFirst().equals(transitionTS1.getTo()) &&
+												toPair.getSecond().equals(transitionTS2.getTo()))
+										.map(toPair -> new TSTransition<>(fromPair, action, toPair))
+										.forEach(ts::addTransition))))); /*→*/
 		ts1.getTransitions()
 				.forEach(transition -> ts.getStates().stream()
 						.filter(pair -> pair.getFirst().equals(transition.getFrom()))
@@ -448,30 +482,11 @@ public class FvmFacade
 //		ts1.getAtomicPropositions().forEach(ts::addAtomicProposition);
 //		ts2.getAtomicPropositions().forEach(ts::addAtomicProposition);
 
-		ts.setName(ts1.getName() + '⫼' + ts2.getName());
+		ts.setName(ts1.getName() + (handShakingActions.isEmpty() ? '⫼' : "⫼_H") + ts2.getName());
 //		ts.setName(ts1.getName() + "|||" + ts2.getName());
 
 		return ts;
 //		throw new java.lang.UnsupportedOperationException();
-	}
-
-	/**
-	 * Compute the synchronous product of two transition systems.
-	 *
-	 * @param <S1>               Type of states in the first system.
-	 * @param <S2>               Type of states in the first system.
-	 * @param <A>                Type of actions (in both systems).
-	 * @param <P>                Type of atomic propositions (in both systems).
-	 * @param ts1                The first transition system.
-	 * @param ts2                The second transition system.
-	 * @param handShakingActions Set of actions both systems perform together.
-	 * @return A transition system that represents the product of the two.
-	 */
-	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
-	                                                                      TransitionSystem<S2, A, P> ts2,
-	                                                                      Set<A> handShakingActions)
-	{
-		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -498,6 +513,7 @@ public class FvmFacade
 	 */
 	public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2)
 	{
+
 		throw new java.lang.UnsupportedOperationException();
 	}
 

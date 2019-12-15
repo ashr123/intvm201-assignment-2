@@ -47,7 +47,7 @@ public class Automaton<State, Sigma> extends MultiColorAutomaton<State, Sigma>
 
 	public boolean isEquivalentTo(Automaton<?, Sigma> other) throws EvaluationException, Exception
 	{
-		AutomatonIO.write((Automaton<?, Sigma>) other, "other.gff");
+		AutomatonIO.write(other, "other.gff");
 		AutomatonIO.write(this, "this.gff");
 
 		Context context = new Context();
