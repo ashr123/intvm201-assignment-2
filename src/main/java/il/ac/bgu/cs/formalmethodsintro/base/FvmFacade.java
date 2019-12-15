@@ -6,7 +6,12 @@ import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ChannelSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
-import il.ac.bgu.cs.formalmethodsintro.base.programgraph.*;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ActionDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ConditionDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.PGTransition;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedActDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ParserBasedCondDef;
+import il.ac.bgu.cs.formalmethodsintro.base.programgraph.ProgramGraph;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
@@ -14,7 +19,14 @@ import il.ac.bgu.cs.formalmethodsintro.base.util.Pair;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -359,7 +371,7 @@ public class FvmFacade
 			queue.add(s);
 			while (!queue.isEmpty())
 			{
-				s = queue.poll();
+				visited.add(s = queue.poll());
 				post(ts, s).stream()
 						.filter(n -> !visited.contains(n))
 						.forEach(n ->
@@ -449,24 +461,26 @@ public class FvmFacade
 								.filter(fromPair -> fromPair.getFirst().equals(transitionTS1.getFrom()) &&
 										fromPair.getSecond().equals(transitionTS2.getFrom()))
 								.forEach(fromPair -> ts.getStates().stream()
-										.filter(toPair -> toPair.getFirst().equals(transitionTS1.getTo()) &&
-												toPair.getSecond().equals(transitionTS2.getTo()))
+										.filter(pair -> pair.getFirst().equals(transitionTS1.getTo()) &&
+												pair.getSecond().equals(transitionTS2.getTo()))
 										.map(toPair -> new TSTransition<>(fromPair, action, toPair))
 										.forEach(ts::addTransition))))); /*→*/
-		ts1.getTransitions()
+		ts1.getTransitions().stream()
+				.filter(transition -> !handShakingActions.contains(transition.getAction()))
 				.forEach(transition -> ts.getStates().stream()
 						.filter(pair -> pair.getFirst().equals(transition.getFrom()))
 						.forEach(fromPair -> ts.getStates().stream()
-								.filter(toPair -> toPair.getFirst().equals(transition.getTo()) &&
-										toPair.getSecond().equals(fromPair.getSecond()))
+								.filter(pair -> pair.getFirst().equals(transition.getTo()) &&
+										pair.getSecond().equals(fromPair.getSecond()))
 								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
 								.forEach(ts::addTransition))); /*→*/
-		ts2.getTransitions()
+		ts2.getTransitions().stream()
+				.filter(transition -> !handShakingActions.contains(transition.getAction()))
 				.forEach(transition -> ts.getStates().stream()
 						.filter(pair -> pair.getSecond().equals(transition.getFrom()))
 						.forEach(fromPair -> ts.getStates().stream()
-								.filter(toPair -> toPair.getSecond().equals(transition.getTo()) &&
-										toPair.getFirst().equals(fromPair.getFirst()))
+								.filter(pair -> pair.getSecond().equals(transition.getTo()) &&
+										pair.getFirst().equals(fromPair.getFirst()))
 								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
 								.forEach(ts::addTransition))); /*→*/
 
@@ -518,7 +532,7 @@ public class FvmFacade
 						{
 							pg.addLocation(pair);
 							pg.setInitial(pair, pg1.getInitialLocations().contains(pair.getFirst()) && pg2.getInitialLocations().contains(pair.getSecond())); // I₁×I₂
-						}));
+						})); // Loc₁×Loc₂, Loc₀,₁×Loc₀,₂
 
 		pg1.getTransitions()
 				.forEach(transition -> pg.getLocations().stream()
@@ -526,7 +540,7 @@ public class FvmFacade
 						.forEach(fromPair -> pg.getLocations().stream()
 								.filter(pair -> pair.getFirst().equals(transition.getTo()) &&
 										pair.getSecond().equals(fromPair.getSecond()))
-								.map(toPair -> new PGTransition(fromPair, transition.getCondition(), transition.getAction(), toPair))
+								.map(toPair -> new PGTransition<>(fromPair, transition.getCondition(), transition.getAction(), toPair))
 								.forEach(pg::addTransition))); /*→*/
 
 		pg2.getTransitions()
@@ -540,14 +554,15 @@ public class FvmFacade
 
 		pg1.getInitalizations()
 				.forEach(i1 -> pg2.getInitalizations().stream()
-						.map(i2 -> {
-							List<String> concatList =new ArrayList<>(i1);
+						.map(i2 ->
+						{
+							final List<String> concatList = new ArrayList<>(i1);
 							concatList.addAll(i2);
 							return concatList;
 						})
 						.forEach(pg::addInitalization));
 
-		pg.setName(pg1.getName() + "||" + pg2.getName());//Update to Roy's favourite.
+		pg.setName(pg1.getName() + '‖' + pg2.getName());
 
 		return pg;
 
