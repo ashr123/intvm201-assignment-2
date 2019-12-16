@@ -650,12 +650,14 @@ public class FvmFacade
 	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index){
 		if (index == inputNames.size())
 			dest.add(tempStorageVar);
-		HashMap<String,Boolean> inputTrue = new HashMap<>(tempStorageVar);
-		HashMap<String,Boolean> inputFalse = new HashMap<>(tempStorageVar);
-		inputTrue.put(inputNames.get(index), true);
-		inputFalse.put(inputNames.get(index), false);
-		createBooleanValues(dest,inputTrue,inputNames,index + 1);
-		createBooleanValues(dest,inputFalse,inputNames,index + 1);
+		else {
+			HashMap<String, Boolean> inputTrue = new HashMap<>(tempStorageVar);
+			HashMap<String, Boolean> inputFalse = new HashMap<>(tempStorageVar);
+			inputTrue.put(inputNames.get(index), true);
+			inputFalse.put(inputNames.get(index), false);
+			createBooleanValues(dest, inputTrue, inputNames, index + 1);
+			createBooleanValues(dest, inputFalse, inputNames, index + 1);
+		}
 	}
 
 	/***
