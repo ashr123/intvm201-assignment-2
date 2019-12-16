@@ -15,6 +15,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 
 import java.io.InputStream;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -563,7 +564,139 @@ public class FvmFacade
 	public TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> transitionSystemFromCircuit(
 			Circuit c)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts = new TransitionSystem<>();
+		Set<Map<String, Boolean>> inputs = new HashSet<>();
+		ArrayList<String> inputNames = new ArrayList<>(c.getInputPortNames());
+		Set<Map<String, Boolean>> registers = new HashSet<>();
+		ArrayList<String> registerNames = new ArrayList<>(c.getRegisterNames());
+
+		c.getInputPortNames()
+				.forEach(ts::addAtomicProposition);
+		c.getRegisterNames()
+				.forEach(ts::addAtomicProposition);
+
+		createBooleanValues(inputs, new HashMap<>(), inputNames, 0);
+		createBooleanValues(registers, new HashMap<>(), registerNames, 0);
+		addLabelApStates(ts, inputs, registers, c);
+		addTransitions(ts,inputs, c);
+
+
+		Set<Pair<Map<String, Boolean>, Map<String, Boolean>>> reach = reach(ts);
+		HashSet<Pair<Map<String, Boolean>, Map<String, Boolean>>> statesToRemove = new HashSet<>();
+		HashSet<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitionsToRemove = new HashSet<>();
+
+		ts.getStates()
+				.stream()
+					.filter(state -> !reach.contains(state))
+						.forEach(statesToRemove::add);
+		statesToRemove
+				.forEach(state -> ts.getTransitions().stream()
+						.filter(transition -> transition.getFrom().equals(state) || transition.getTo().equals(state))
+						.forEach(transitionsToRemove::add));
+		transitionsToRemove
+				.forEach(ts::removeTransition);
+		statesToRemove
+				.forEach(state -> {ts.getLabel(state).removeAll(ts.getLabel(state));
+									ts.removeState(state);});
+
+		/*
+		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state1 : ts.getStates()) {
+			if (!reach.contains(state1)) {
+				statesToRemove.add(state1);
+			}
+		}
+		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state1 : statesToRemove) {
+			for (TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>> tran: ts.getTransitions()) {
+				if (tran.getFrom().equals(state1) || tran.getTo().equals(state1))
+					transitionsToRemove.add(tran);
+			}
+		}
+		for (TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>> tran: transitionsToRemove)
+			ts.removeTransition(tran);
+		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state1 : statesToRemove) {
+			ts.getLabel(state1).removeAll(ts.getLabel(state1));
+			ts.removeState(state1);
+		}*/
+
+		return ts;
+
+		//throw new java.lang.UnsupportedOperationException();
+	}
+
+	/***
+	 * Creates all the possible boolean input variables into dest.
+	 *
+	 * @param dest           The destination of the possible input.
+	 * @param tempStorageVar A helper storage variable for the
+	 * @param inputNames     Names of the inputs.
+	 * @param index          Represents the index of the input.
+	 */
+	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index){
+		if (index == inputNames.size())
+			dest.add(tempStorageVar);
+		HashMap<String,Boolean> inputTrue = new HashMap<>(tempStorageVar);
+		HashMap<String,Boolean> inputFalse = new HashMap<>(tempStorageVar);
+		inputTrue.put(inputNames.get(index), true);
+		inputFalse.put(inputNames.get(index), false);
+		createBooleanValues(dest,inputTrue,inputNames,index + 1);
+		createBooleanValues(dest,inputFalse,inputNames,index + 1);
+	}
+
+	/***
+	 * Adds the labels,atomic-propositions and states of {@link Circuit} to the {@link TransitionSystem}.
+	 * @param ts        The {@link TransitionSystem} we build from the given {@link Circuit}.
+	 * @param inputs    The given {@link Circuit} inputs.
+	 * @param registers The given {@link Circuit} registers.
+	 * @param circuit   The given {@link Circuit}.
+	 */
+	private void addLabelApStates(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Set<Map<String, Boolean>> registers, Circuit circuit) {
+		for (Map<String, Boolean> input: inputs) {
+			ts.addAction(input);
+			for (Map<String, Boolean> register : registers) {
+				Pair<Map<String, Boolean>, Map<String, Boolean>> state = new Pair<>(input, register);
+				ts.addState(state);
+
+				input.keySet()
+						.stream()
+							.filter(str -> input.get(str))
+								.forEach(str -> ts.addToLabel(state, str));
+
+				AtomicBoolean init = new AtomicBoolean(false);
+
+				register.keySet()
+						.stream()
+							.filter(str -> register.get(str))
+								.forEach(str -> {ts.addToLabel(state, str);
+									init.set(true);});
+
+				Map<String, Boolean> outputs = circuit.computeOutputs(input, register);
+
+				outputs.keySet()
+						.forEach(str -> {ts.addAtomicProposition(str);
+											if(outputs.get(str))
+												ts.addToLabel(state, str);});
+
+				if (!init.get())
+					ts.addInitialState(state);
+				ts.removeInitialState(state);
+			}
+		}
+	}
+
+	/***
+	 * Adds the transitions of {@link Circuit} to the {@link TransitionSystem}.
+	 *
+	 * @param ts      The {@link TransitionSystem} we build from the given {@link Circuit}.
+	 * @param inputs  The given {@link Circuit} inputs.
+	 * @param circuit The given {@link Circuit}.
+	 */
+	private void addTransitions(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Circuit circuit) {
+		ts.getStates()
+				.forEach(state -> {Map<String, Boolean> nextRegs = circuit.updateRegisters(state.getFirst(), state.getSecond());
+									inputs.forEach(input -> ts.getStates()
+											.stream()
+												.filter(newState -> newState.getFirst().equals(input) && newState.getSecond().equals(nextRegs))
+													.forEach(newState -> ts.addTransition(new TSTransition<>(state, input, newState))));});
 	}
 
 	/**
