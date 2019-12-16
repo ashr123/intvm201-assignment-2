@@ -40,26 +40,13 @@ public class MultiColorAutomaton<State, L>
 			addState(destination);
 		}
 
-		Set<State> set = transitions.get(source).get(symbol);
-		if (set == null)
-		{
-			set = new HashSet<>();
-			transitions.get(source).put(symbol, set);
-		}
-		set.add(destination);
+		transitions.get(source).computeIfAbsent(symbol, k -> new HashSet<>()).add(destination);
 	}
 
 	public Set<State> getAcceptingStates(int color)
 	{
-		Set<State> acc = accepting.get(color);
 
-		if (acc == null)
-		{
-			acc = new HashSet<>();
-			accepting.put(color, acc);
-		}
-
-		return acc;
+		return accepting.computeIfAbsent(color, k -> new HashSet<>());
 	}
 
 	public Set<State> getInitialStates()
