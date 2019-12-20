@@ -3,6 +3,8 @@ package il.ac.bgu.cs.formalmethodsintro.base;
 import il.ac.bgu.cs.formalmethodsintro.base.automata.Automaton;
 import il.ac.bgu.cs.formalmethodsintro.base.automata.MultiColorAutomaton;
 import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ChannelSystem;
+import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.InterleavingActDef;
+import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ParserBasedInterleavingActDef;
 import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
@@ -39,16 +41,14 @@ import java.util.stream.Collectors;
  * More about facade: <a href="http://www.vincehuston.org/dp/facade.html">http://www.vincehuston.org/dp/facade.html</a>.
  */
 @SuppressWarnings("unused")
-public class FvmFacade
-{
+public class FvmFacade {
 
 	private static FvmFacade INSTANCE = null;
 
 	/**
 	 * @return an instance of this class.
 	 */
-	public static FvmFacade get()
-	{
+	public static FvmFacade get() {
 		if (INSTANCE == null)
 			INSTANCE = new FvmFacade();
 		return INSTANCE;
@@ -65,8 +65,7 @@ public class FvmFacade
 	 * @param ts  The transition system being tested.
 	 * @return {@code true} iff the action is deterministic.
 	 */
-	public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts)
-	{
+	public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts) {
 		if (ts.getInitialStates().size() > 1)
 			return false;
 		for (S state : ts.getStates())
@@ -86,8 +85,7 @@ public class FvmFacade
 	 * @param ts  The transition system being tested.
 	 * @return {@code true} iff the action is ap-deterministic.
 	 */
-	public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts)
-	{
+	public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts) {
 //		if (ts.getInitialStates().size() > 1)
 //			return false;
 //		Set<Set<P>> LStateTag = new HashSet<Set<P>>();
@@ -121,8 +119,7 @@ public class FvmFacade
 	 * @param e   The sequence that may or may not be an execution of {@code ts}.
 	 * @return {@code true} iff {@code e} is an execution of {@code ts}.
 	 */
-	public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
-	{
+	public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
 		return isInitialExecutionFragment(ts, e) && isMaximalExecutionFragment(ts, e);
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -140,8 +137,7 @@ public class FvmFacade
 	 * @return {@code true} iff {@code e} is an execution fragment of
 	 * {@code ts}.
 	 */
-	public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
-	{
+	public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
 		if (e.isEmpty())
 			return true;
 		final AlternatingSequence<A, S> eNext = e.tail();
@@ -169,8 +165,7 @@ public class FvmFacade
 	 * @return {@code true} iff {@code e} is an execution fragment of
 	 * {@code ts}.
 	 */
-	public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
-	{
+	public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
 		return ts.getInitialStates().contains(e.head());
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -187,8 +182,7 @@ public class FvmFacade
 	 *            of {@code ts}.
 	 * @return {@code true} iff {@code e} is a maximal fragment of {@code ts}.
 	 */
-	public <S, A, P> boolean isMaximalExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
-	{
+	public <S, A, P> boolean isMaximalExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
 		return isStateTerminal(ts, e.last()) && isExecutionFragment(ts, e);
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -203,8 +197,7 @@ public class FvmFacade
 	 * @return {@code true} iff state {@code s} is terminal in {@code ts}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S, A> boolean isStateTerminal(TransitionSystem<S, A, ?> ts, S s)
-	{
+	public <S, A> boolean isStateTerminal(TransitionSystem<S, A, ?> ts, S s) {
 		return post(ts, s).isEmpty();
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -216,8 +209,7 @@ public class FvmFacade
 	 * @return All the states in {@code Post(s)}, in the context of {@code ts}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, S s)
-	{
+	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, S s) {
 		if (!ts.getStates().contains(s))
 			throw new StateNotFoundException(s);
 		return ts.getTransitions().parallelStream()
@@ -235,8 +227,7 @@ public class FvmFacade
 	 * {@code c}, in the context of {@code ts}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c)
-	{
+	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c) {
 		return c.parallelStream()
 				.map(state -> post(ts, state))
 				.flatMap(Set::parallelStream)
@@ -254,8 +245,7 @@ public class FvmFacade
 	 * {@code s}, when action {@code a} is selected.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a)
-	{
+	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a) {
 		if (!ts.getStates().contains(s))
 			throw new StateNotFoundException(s);
 		return ts.getTransitions().parallelStream()
@@ -274,8 +264,7 @@ public class FvmFacade
 	 * @return All the states that {@code ts} might transition to from any state
 	 * in {@code c}, when action {@code a} is selected.
 	 */
-	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a)
-	{
+	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
 		return c.parallelStream()
 				.map(state -> post(ts, state, a))
 				.flatMap(Set::parallelStream)
@@ -289,8 +278,7 @@ public class FvmFacade
 	 * @param s   A state in {@code ts}.
 	 * @return All the states in {@code Pre(s)}, in the context of {@code ts}.
 	 */
-	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s)
-	{
+	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s) {
 		if (!ts.getStates().contains(s))
 			throw new StateNotFoundException(s);
 		return ts.getTransitions().parallelStream()
@@ -308,8 +296,7 @@ public class FvmFacade
 	 * {@code c}, in the context of {@code ts}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c)
-	{
+	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c) {
 		return c.parallelStream()
 				.map(state -> pre(ts, state))
 				.flatMap(Set::parallelStream)
@@ -327,8 +314,7 @@ public class FvmFacade
 	 * {@code s}, and the last action was {@code a}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a)
-	{
+	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a) {
 		if (!ts.getStates().contains(s))
 			throw new StateNotFoundException(s);
 		return ts.getTransitions().parallelStream()
@@ -348,8 +334,7 @@ public class FvmFacade
 	 * any state in {@code c}, and the last action was {@code a}.
 	 * @throws StateNotFoundException if {@code s} is not a state of {@code ts}.
 	 */
-	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a)
-	{
+	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
 		return c.parallelStream()
 				.map(state -> pre(ts, state, a))
 				.flatMap(Set::parallelStream)
@@ -365,15 +350,12 @@ public class FvmFacade
 	 * @param ts  Transition system of {@code s}.
 	 * @return All states reachable in {@code ts}.
 	 */
-	public <S, A> Set<S> reach(TransitionSystem<S, A, ?> ts)
-	{
+	public <S, A> Set<S> reach(TransitionSystem<S, A, ?> ts) {
 		Set<S> visited = new HashSet<>();
 		Deque<S> queue = new LinkedList<>();
-		for (S s : ts.getInitialStates())
-		{
+		for (S s : ts.getInitialStates()) {
 			queue.add(s);
-			while (!queue.isEmpty())
-			{
+			while (!queue.isEmpty()) {
 				visited.add(s = queue.poll());
 				post(ts, s).stream()
 						.filter(n -> !visited.contains(n))
@@ -400,8 +382,7 @@ public class FvmFacade
 	 * @return A transition system that represents the product of the two.
 	 */
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
-	                                                                      TransitionSystem<S2, A, P> ts2)
-	{
+	                                                                      TransitionSystem<S2, A, P> ts2) {
 		return interleave(ts1, ts2, Collections.emptySet());
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -420,8 +401,7 @@ public class FvmFacade
 	 */
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1,
 	                                                                      TransitionSystem<S2, A, P> ts2,
-	                                                                      Set<A> handShakingActions)
-	{
+	                                                                      Set<A> handShakingActions) {
 		final TransitionSystem<Pair<S1, S2>, A, P> ts = new TransitionSystem<>();
 
 		ts1.getStates()
@@ -501,8 +481,7 @@ public class FvmFacade
 	 * @param <A> Type of actions of the graph.
 	 * @return A new program graph instance.
 	 */
-	public <L, A> ProgramGraph<L, A> createProgramGraph()
-	{
+	public <L, A> ProgramGraph<L, A> createProgramGraph() {
 		return new ProgramGraph<>();
 	}
 
@@ -516,8 +495,7 @@ public class FvmFacade
 	 * @param pg2  The second program graph.
 	 * @return Interleaved program graph.
 	 */
-	public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2)
-	{
+	public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2) {
 		final ProgramGraph<Pair<L1, L2>, A> pg = createProgramGraph();
 
 		pg1.getLocations()
@@ -571,8 +549,7 @@ public class FvmFacade
 	 * @return A {@link TransitionSystem} representing {@code c}.
 	 */
 	public TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> transitionSystemFromCircuit(
-			Circuit c)
-	{
+			Circuit c) {
 		TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts = new TransitionSystem<>();
 		Set<Map<String, Boolean>> inputs = new HashSet<>();
 		ArrayList<String> inputNames = new ArrayList<>(c.getInputPortNames());
@@ -610,6 +587,10 @@ public class FvmFacade
 					ts.removeState(state);
 				});
 
+		ts.setName("TS(Circuit)");
+
+		return ts;
+
 		/*
 		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state1 : ts.getStates()) {
 			if (!reach.contains(state1)) {
@@ -629,8 +610,6 @@ public class FvmFacade
 			ts.removeState(state1);
 		}*/
 
-		return ts;
-
 		//throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -642,8 +621,7 @@ public class FvmFacade
 	 * @param inputNames     Names of the inputs.
 	 * @param index          Represents the index of the input.
 	 */
-	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index)
-	{
+	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index) {
 		if (index == inputNames.size())
 			dest.add(tempStorageVar);
 		else {
@@ -663,13 +641,10 @@ public class FvmFacade
 	 * @param registers The given {@link Circuit} registers.
 	 * @param circuit   The given {@link Circuit}.
 	 */
-	private void addLabelApStates(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Set<Map<String, Boolean>> registers, Circuit circuit)
-	{
-		for (Map<String, Boolean> input : inputs)
-		{
+	private void addLabelApStates(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Set<Map<String, Boolean>> registers, Circuit circuit) {
+		for (Map<String, Boolean> input : inputs) {
 			ts.addAction(input);
-			for (Map<String, Boolean> register : registers)
-			{
+			for (Map<String, Boolean> register : registers) {
 				Pair<Map<String, Boolean>, Map<String, Boolean>> state = new Pair<>(input, register);
 				ts.addState(state);
 
@@ -714,8 +689,7 @@ public class FvmFacade
 	 * @param circuit The given {@link Circuit}.
 	 */
 	private void addTransitions(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts,
-	                            Set<Map<String, Boolean>> inputs, Circuit circuit)
-	{
+	                            Set<Map<String, Boolean>> inputs, Circuit circuit) {
 		ts.getStates()
 				.forEach(state ->
 				{
@@ -739,73 +713,69 @@ public class FvmFacade
 	 * @return A transition system representing {@code pg}.
 	 */
 	public <L, A> TransitionSystem<Pair<L, Map<String, Object>>, A, String> transitionSystemFromProgramGraph(
-			ProgramGraph<L, A> pg, Set<ActionDef> actionDefs, Set<ConditionDef> conditionDefs)
-	{
-		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ans = new TransitionSystem<>();
-		AddStatesToTSFromPG(ans,pg,actionDefs);
-		Queue<Pair<L, Map<String, Object>>> currents = new LinkedList<>(ans.getInitialStates());
+			ProgramGraph<L, A> pg, Set<ActionDef> actionDefs, Set<ConditionDef> conditionDefs) {
+		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts = new TransitionSystem<>();
+		addInitialStatesTSFromPG(ts, pg, actionDefs);
+		Queue<Pair<L, Map<String, Object>>> currents = new LinkedList<>(ts.getInitialStates());
 		Set<Pair<L, Map<String, Object>>> visited = new HashSet<>();
 
-		while (!currents.isEmpty()){
+		while (!currents.isEmpty()) {
 			Pair<L, Map<String, Object>> currentState = currents.poll();
 			if (!visited.contains(currentState)) {
 				visited.add(currentState);
 
-				for (Map.Entry<String, Object> var : currentState.getSecond().entrySet()){
-					ans.addAtomicProposition(var.getKey() + " = " + var.getValue());
-					ans.addToLabel(currentState, var.getKey() + " = " + var.getValue());
+				for (Map.Entry<String, Object> var : currentState.getSecond().entrySet()) {
+					ts.addToLabel(currentState, var.getKey() + " = " + var.getValue());
 				}
-				ans.addAtomicProposition(currentState.getFirst().toString());
-				ans.addToLabel(currentState, currentState.getFirst().toString());
-				for (PGTransition<L, A> tran : pg.getTransitions()) {
+				ts.addToLabel(currentState, currentState.getFirst().toString());
+				for (PGTransition<L, A> transition : pg.getTransitions()) {
 					Map<String, Object> eta = new HashMap<>(currentState.getSecond());
-					if (tran.getFrom().equals(currentState.getFirst())) {
-						for (ConditionDef cond : conditionDefs) {
-							if (cond.evaluate(currentState.getSecond(), tran.getCondition())){
-								for(ActionDef a : actionDefs){
-									if(a.isMatchingAction(tran.getAction())) {
-										eta = a.effect(eta, tran.getAction());
-									}
-								}
-								Pair<L,Map<String,Object>> state = new Pair<>(tran.getTo(),eta);
-								ans.addState(state);
-								currents.add(state);
+					if (transition.getFrom().equals(currentState.getFirst())) {
+						if (ConditionDef.evaluate(conditionDefs, eta, transition.getCondition())) {
+							eta = ActionDef.effect(actionDefs, eta, transition.getAction());
+							Pair<L, Map<String, Object>> state = new Pair<>(transition.getTo(), eta);
+							ts.addState(state);
+							currents.add(state);
 
-								ans.addAction(tran.getAction());
-								ans.addTransition(new TSTransition<>(currentState,tran.getAction(),state));
-							}
+							ts.addAction(transition.getAction());
+							ts.addTransition(new TSTransition<>(currentState, transition.getAction(), state));
 						}
 					}
 				}
-
 			}
 		}
-		return ans;
+
+		pg.setName("TS(" + pg.getName() + ")");
+
+		return ts;
 		//throw new java.lang.UnsupportedOperationException();
 	}
 
-	private <L, A> void AddStatesToTSFromPG(TransitionSystem<Pair<L, Map<String, Object>>,A, String> ans, ProgramGraph<L,A> pg, Set<ActionDef> actionDefs) {
-		boolean emptyInits = false;
-		if (pg.getInitalizations().isEmpty()) {
-			emptyInits = true;
-			pg.addInitalization(new ArrayList<>());
+	/***
+	 * Adds the initial states from {@link ProgramGraph} to {@link TransitionSystem}.
+	 * @param ts         The {@link TransitionSystem} we build from the given {@link ProgramGraph}.
+	 * @param pg         The given {@link ProgramGraph}.
+	 * @param actionDefs Defines the effect of each action.
+	 * @param <L>        Type of program graph locations.
+	 * @param <A>        Type of program graph actions.
+	 */
+	private <L, A> void addInitialStatesTSFromPG(TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts, ProgramGraph<L, A> pg, Set<ActionDef> actionDefs) {
+		int i = 0;
+		Set<Map<String, Object>> evals = new HashSet<>();
+		evals.add(new HashMap<>());
+		for (List<String> initList : pg.getInitalizations()) {
+			Map<String, Object> eval = new HashMap<>();
+			for (String action : initList) {
+				eval = ActionDef.effect(actionDefs, eval, action);
+			}
+			evals.add(eval);
 		}
-		for (L initLoc: pg.getInitialLocations()){
-			Map<String, Object> evaluateVars = new HashMap<>();
-			for (List<String> initList: pg.getInitalizations()){
-				for (String s: initList){
-					for (ActionDef a: actionDefs){
-						if (a.isMatchingAction(s))
-							evaluateVars = a.effect(evaluateVars, s);
-					}
-				}
-				Pair<L, Map<String, Object>> initState = new Pair<>(initLoc, evaluateVars);
-				ans.addState(initState);
-				ans.addInitialState(initState);
+
+		for (Map<String, Object> eval : evals) {
+			for (L initLoc : pg.getInitialLocations()) {
+				ts.addInitialState(new Pair<>(initLoc, eval));
 			}
 		}
-		if (emptyInits)
-			pg.getInitalizations().clear();
 	}
 
 	/**
@@ -817,8 +787,7 @@ public class FvmFacade
 	 * @return A transition system representing {@code cs}.
 	 */
 	public <L, A> TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> transitionSystemFromChannelSystem(
-			ChannelSystem<L, A> cs)
-	{
+			ChannelSystem<L, A> cs) {
 
 		Set<ActionDef> actions = Collections.singleton(new ParserBasedActDef());
 		Set<ConditionDef> conditions = Collections.singleton(new ParserBasedCondDef());
@@ -826,11 +795,157 @@ public class FvmFacade
 	}
 
 	public <L, A> TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> transitionSystemFromChannelSystem(
-			ChannelSystem<L, A> cs, Set<ActionDef> actions, Set<ConditionDef> conditions)
-	{
-		throw new java.lang.UnsupportedOperationException();
+			ChannelSystem<L, A> cs, Set<ActionDef> actions, Set<ConditionDef> conditions) {
+		TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts = new TransitionSystem<>();
+		List<ProgramGraph<L, A>> programGraphs = cs.getProgramGraphs();
+		Set<ActionDef> setActDefs = new HashSet<>();
+		InterleavingActDef actionDef = new ParserBasedInterleavingActDef();
+		setActDefs.add(actionDef);
+		setActDefs.add(new ParserBasedActDef());
+		Set<ActionDef> complexActionDefSet = new HashSet<>();
+		complexActionDefSet.add(new ParserBasedInterleavingActDef());
+		ConditionDef conditionDef = new ParserBasedCondDef();
+		Set<ConditionDef> setCondDefs = new HashSet<>();
+		setCondDefs.add(conditionDef);
+
+		List<Set<L>> initialLoc = new ArrayList<>();
+		for (ProgramGraph<L, A> pg : programGraphs)
+			initialLoc.add(pg.getInitialLocations());
+		List<List<L>> allInitialLoc = wrapperCreateAllPossibleLists(initialLoc);
+
+
+		List<Set<List<String>>> initializations = new ArrayList<>();
+		for (ProgramGraph<L, A> pg : programGraphs)
+			initializations.add(pg.getInitalizations());
+
+		List<List<String>> mixedInitializations = new ArrayList<>();
+		wrapperCreateAllPossibleLists(new ArrayList<>(initializations)).forEach(mixedInitializations::addAll);
+		Set<Map<String, Object>> initials = new HashSet<>();
+		for (List<String> initialization : mixedInitializations) {
+			Map<String, Object> eval = new HashMap<>();
+			for (String action : initialization)
+				eval = ActionDef.effect(setActDefs, eval, action);
+			initials.add(eval);
+		}
+		if (initials.size() == 0)
+			initials.add(new HashMap<>());
+
+		Set<Pair<List<L>, Map<String, Object>>> initStates = new HashSet<>();
+		for (List<L> location : allInitialLoc)
+			for (Map<String, Object> init : initials)
+				initStates.add(new Pair<>(location, init));
+
+		Queue<Pair<List<L>, Map<String, Object>>> currents = new LinkedList<>();
+		for (Pair<List<L>, Map<String, Object>> state : initStates) {
+			ts.addInitialState(state);
+			currents.add(state);
+
+			addAPAndLabelToTSFromChanel(ts, state);
+
+		}
+
+		while (!currents.isEmpty()) {
+			Pair<List<L>, Map<String, Object>> currentNewLocation = currents.poll();
+			Map<Integer, List<PGTransition<L, A>>> oneSideActions = new HashMap<>();
+			for (int i = 0; i < programGraphs.size(); i++) {
+				ProgramGraph<L, A> currentPg = programGraphs.get(i);
+				L currentLocation = currentNewLocation.getFirst().get(i);
+
+				for (PGTransition<L, A> pgTransition : currentPg.getTransitions()) {
+					if (pgTransition.getFrom().equals(currentLocation)) {
+						if (ConditionDef.evaluate(setCondDefs, currentNewLocation.second, pgTransition.getCondition())) {
+							A action = pgTransition.getAction();
+							if (actionDef.isOneSidedAction(action.toString())) {
+								if (!oneSideActions.containsKey(i)) {
+									oneSideActions.put(i, new ArrayList<>());
+								}
+								oneSideActions.get(i).add(pgTransition);
+							} else {
+								List<L> newLocation = new ArrayList<>(currentNewLocation.first);
+								newLocation.set(i, pgTransition.getTo());
+								addActAndTranToTSFromChanel(ts, setActDefs, currents, currentNewLocation, action, newLocation);
+							}
+						}
+					}
+				}
+				if (oneSideActions.size() > 0) {
+					List<Set<Pair<Integer, PGTransition<L, A>>>> allComplexTransitions = new ArrayList<>();
+					for (Integer key : oneSideActions.keySet()) {
+						List<PGTransition<L, A>> transitions = oneSideActions.get(key);
+						Set<Pair<Integer, PGTransition<L, A>>> set = new HashSet<>();
+						for (PGTransition<L, A> transition : transitions) {
+							set.add(new Pair<>(key, transition));
+						}
+						allComplexTransitions.add(set);
+					}
+					List<List<Pair<Integer, PGTransition<L, A>>>> allComplexTransitionPermutations = wrapperCreateAllPossibleLists(allComplexTransitions);
+					for (List<Pair<Integer, PGTransition<L, A>>> complexTransition : allComplexTransitionPermutations) {
+						StringBuilder action = new StringBuilder();
+						List<L> newLocation = new ArrayList<>(currentNewLocation.first);
+						List<A> actions = new ArrayList<>();
+						for (Pair<Integer, PGTransition<L, A>> pair : complexTransition) {
+							if (action.length() != 0)
+								action.append("|");
+							action.append(pair.second.getAction());
+							actions.add(pair.second.getAction());
+							newLocation.set(pair.first, pair.second.getTo());
+						}
+						if (!actionDef.isOneSidedAction(actions.toString()) && complexTransition.size() > 1)
+							addActAndTranToTSFromChanel(ts, complexActionDefSet, currents, currentNewLocation, (A) action.toString(), newLocation);
+					}
+				}
+			}
+		}
+		return ts;
+//        throw new java.lang.UnsupportedOperationException();
 	}
 
+	private <L, A> void addActAndTranToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Set<ActionDef> setActDefs, Queue<Pair<List<L>, Map<String, Object>>> currents, Pair<List<L>, Map<String, Object>> state, A action, List<L> new_location) {
+		Map<String, Object> newEval = ActionDef.effect(setActDefs, state.second, action);
+		if (newEval != null) {
+			Pair<List<L>, Map<String, Object>> newState = new Pair<>(new_location, newEval);
+			TSTransition<Pair<List<L>, Map<String, Object>>, A> transition = new TSTransition<>(state, action, newState);
+			if (!ts.getStates().contains(newState)) {
+				currents.add(newState);
+				ts.addState(newState);
+			}
+			ts.addAction(action);
+			ts.addTransition(transition);
+			addAPAndLabelToTSFromChanel(ts, newState);
+		}
+	}
+
+	private <L, A> void addAPAndLabelToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Pair<List<L>, Map<String, Object>> state) {
+		for (L loc : state.first) {
+			ts.addToLabel(state, loc.toString());
+		}
+		for (Map.Entry<String, Object> entry : state.second.entrySet()) {
+			ts.addToLabel(state, entry.getKey() + " = " + entry.getValue().toString());
+		}
+	}
+
+	private <T> List<List<T>> wrapperCreateAllPossibleLists(List<Set<T>> items) {
+		List<List<T>> ans = new ArrayList<>();
+		createAllPossibleLists(items, ans, new ArrayList<>(), 0);
+		return ans;
+	}
+
+	private <T> void createAllPossibleLists(List<Set<T>> items, List<List<T>> ans, List<T> currList, int pos) {
+		if (pos == items.size()) {
+			ans.add(currList);
+		} else {
+			Set<T> indexList = items.get(pos);
+
+			if (indexList.isEmpty())
+				createAllPossibleLists(items, ans, currList, pos + 1);
+
+			for (T item : indexList) {
+				List<T> currentList = new ArrayList<>(currList);
+				currentList.add(item);
+				createAllPossibleLists(items, ans, currentList, pos + 1);
+			}
+		}
+	}
 
 	/**
 	 * Construct a program graph from nanopromela code.
@@ -839,8 +954,7 @@ public class FvmFacade
 	 * @return A program graph for the given code.
 	 * @throws Exception If the code is invalid.
 	 */
-	public ProgramGraph<String, String> programGraphFromNanoPromela(String filename) throws Exception
-	{
+	public ProgramGraph<String, String> programGraphFromNanoPromela(String filename) throws Exception {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -851,8 +965,7 @@ public class FvmFacade
 	 * @return A program graph for the given code.
 	 * @throws Exception If the code is invalid.
 	 */
-	public ProgramGraph<String, String> programGraphFromNanoPromelaString(String nanopromela) throws Exception
-	{
+	public ProgramGraph<String, String> programGraphFromNanoPromelaString(String nanopromela) throws Exception {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -863,8 +976,7 @@ public class FvmFacade
 	 * @return A program graph for the given code.
 	 * @throws Exception If the code is invalid.
 	 */
-	public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception
-	{
+	public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -881,8 +993,7 @@ public class FvmFacade
 	 * @return The product of {@code ts} with {@code aut}.
 	 */
 	public <Sts, Saut, A, P> TransitionSystem<Pair<Sts, Saut>, A, Saut> product(TransitionSystem<Sts, A, P> ts,
-	                                                                            Automaton<Saut, P> aut)
-	{
+	                                                                            Automaton<Saut, P> aut) {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -901,8 +1012,7 @@ public class FvmFacade
 	 * with a counterexample.
 	 */
 	public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts,
-	                                                                          Automaton<Saut, P> aut)
-	{
+	                                                                          Automaton<Saut, P> aut) {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -914,8 +1024,7 @@ public class FvmFacade
 	 * @param ltl The LTL formula represented as a parse-tree.
 	 * @return An automaton A such that L_\omega(A)=Words(ltl)
 	 */
-	public <L> Automaton<?, L> LTL2NBA(LTL<L> ltl)
-	{
+	public <L> Automaton<?, L> LTL2NBA(LTL<L> ltl) {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
@@ -927,8 +1036,7 @@ public class FvmFacade
 	 * @param mulAut An automaton with a set of accepting states (colors).
 	 * @return An equivalent automaton with a single set of accepting states.
 	 */
-	public <L> Automaton<?, L> GNBA2NBA(MultiColorAutomaton<?, L> mulAut)
-	{
+	public <L> Automaton<?, L> GNBA2NBA(MultiColorAutomaton<?, L> mulAut) {
 		throw new java.lang.UnsupportedOperationException();
 	}
 
