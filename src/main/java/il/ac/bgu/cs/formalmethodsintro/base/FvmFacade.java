@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
  * interface only.<br>
  * More about facade: <a href="http://www.vincehuston.org/dp/facade.html">http://www.vincehuston.org/dp/facade.html</a>.
  */
+@SuppressWarnings("unused")
 public class FvmFacade
 {
 
@@ -460,8 +461,8 @@ public class FvmFacade
 						.filter(transitionTS2 -> transitionTS2.getAction().equals(action) &&
 								transitionTS2.getAction().equals(transitionTS1.getAction()))
 						.forEach(transitionTS2 -> ts.getStates().stream()
-								.filter(fromPair -> fromPair.getFirst().equals(transitionTS1.getFrom()) &&
-										fromPair.getSecond().equals(transitionTS2.getFrom()))
+								.filter(pair -> pair.getFirst().equals(transitionTS1.getFrom()) &&
+										pair.getSecond().equals(transitionTS2.getFrom()))
 								.forEach(fromPair -> ts.getStates().stream()
 										.filter(pair -> pair.getFirst().equals(transitionTS1.getTo()) &&
 												pair.getSecond().equals(transitionTS2.getTo()))
@@ -485,14 +486,6 @@ public class FvmFacade
 										pair.getFirst().equals(fromPair.getFirst()))
 								.map(toPair -> new TSTransition<>(fromPair, transition.getAction(), toPair))
 								.forEach(ts::addTransition))); /*→*/
-
-//		ts1.getInitialStates()
-//				.forEach(s1 -> ts2.getInitialStates().stream()
-//						.map(s2 -> new Pair<>(s1, s2))
-//						.forEach(ts::addInitialState)); // I₁×I₂
-//
-//		ts1.getAtomicPropositions().forEach(ts::addAtomicProposition);
-//		ts2.getAtomicPropositions().forEach(ts::addAtomicProposition);
 
 		ts.setName(ts1.getName() + (handShakingActions.isEmpty() ? '⫼' : "⫼_H") + ts2.getName());
 //		ts.setName(ts1.getName() + "|||" + ts2.getName());
@@ -594,17 +587,16 @@ public class FvmFacade
 		createBooleanValues(inputs, new HashMap<>(), inputNames, 0);
 		createBooleanValues(registers, new HashMap<>(), registerNames, 0);
 		addLabelApStates(ts, inputs, registers, c);
-		addTransitions(ts,inputs, c);
+		addTransitions(ts, inputs, c);
 
 
 		Set<Pair<Map<String, Boolean>, Map<String, Boolean>>> reach = reach(ts);
 		HashSet<Pair<Map<String, Boolean>, Map<String, Boolean>>> statesToRemove = new HashSet<>();
 		HashSet<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitionsToRemove = new HashSet<>();
 
-		ts.getStates()
-				.stream()
-					.filter(state -> !reach.contains(state))
-						.forEach(statesToRemove::add);
+		ts.getStates().stream()
+				.filter(state -> !reach.contains(state))
+				.forEach(statesToRemove::add);
 		statesToRemove
 				.forEach(state -> ts.getTransitions().stream()
 						.filter(transition -> transition.getFrom().equals(state) || transition.getTo().equals(state))
@@ -612,8 +604,11 @@ public class FvmFacade
 		transitionsToRemove
 				.forEach(ts::removeTransition);
 		statesToRemove
-				.forEach(state -> {ts.getLabel(state).removeAll(ts.getLabel(state));
-									ts.removeState(state);});
+				.forEach(state ->
+				{
+					ts.getLabel(state).removeAll(ts.getLabel(state));
+					ts.removeState(state);
+				});
 
 		/*
 		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state1 : ts.getStates()) {
@@ -647,7 +642,8 @@ public class FvmFacade
 	 * @param inputNames     Names of the inputs.
 	 * @param index          Represents the index of the input.
 	 */
-	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index){
+	private void createBooleanValues(Set<Map<String, Boolean>> dest, Map<String, Boolean> tempStorageVar, ArrayList<String> inputNames, int index)
+	{
 		if (index == inputNames.size())
 			dest.add(tempStorageVar);
 		else {
@@ -667,32 +663,41 @@ public class FvmFacade
 	 * @param registers The given {@link Circuit} registers.
 	 * @param circuit   The given {@link Circuit}.
 	 */
-	private void addLabelApStates(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Set<Map<String, Boolean>> registers, Circuit circuit) {
-		for (Map<String, Boolean> input: inputs) {
+	private void addLabelApStates(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Set<Map<String, Boolean>> registers, Circuit circuit)
+	{
+		for (Map<String, Boolean> input : inputs)
+		{
 			ts.addAction(input);
-			for (Map<String, Boolean> register : registers) {
+			for (Map<String, Boolean> register : registers)
+			{
 				Pair<Map<String, Boolean>, Map<String, Boolean>> state = new Pair<>(input, register);
 				ts.addState(state);
 
 				input.keySet()
 						.stream()
-							.filter(str -> input.get(str))
-								.forEach(str -> ts.addToLabel(state, str));
+						.filter(input::get)
+						.forEach(str -> ts.addToLabel(state, str));
 
 				AtomicBoolean init = new AtomicBoolean(false);
 
 				register.keySet()
 						.stream()
-							.filter(str -> register.get(str))
-								.forEach(str -> {ts.addToLabel(state, str);
-									init.set(true);});
+						.filter(register::get)
+						.forEach(str ->
+						{
+							ts.addToLabel(state, str);
+							init.set(true);
+						});
 
 				Map<String, Boolean> outputs = circuit.computeOutputs(input, register);
 
 				outputs.keySet()
-						.forEach(str -> {ts.addAtomicProposition(str);
-											if(outputs.get(str))
-												ts.addToLabel(state, str);});
+						.forEach(str ->
+						{
+							ts.addAtomicProposition(str);
+							if (outputs.get(str))
+								ts.addToLabel(state, str);
+						});
 
 				if (!init.get())
 					ts.addInitialState(state);
@@ -708,13 +713,18 @@ public class FvmFacade
 	 * @param inputs  The given {@link Circuit} inputs.
 	 * @param circuit The given {@link Circuit}.
 	 */
-	private void addTransitions(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts, Set<Map<String, Boolean>> inputs, Circuit circuit) {
+	private void addTransitions(TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts,
+	                            Set<Map<String, Boolean>> inputs, Circuit circuit)
+	{
 		ts.getStates()
-				.forEach(state -> {Map<String, Boolean> nextRegs = circuit.updateRegisters(state.getFirst(), state.getSecond());
-									inputs.forEach(input -> ts.getStates()
-											.stream()
-												.filter(newState -> newState.getFirst().equals(input) && newState.getSecond().equals(nextRegs))
-													.forEach(newState -> ts.addTransition(new TSTransition<>(state, input, newState))));});
+				.forEach(state ->
+				{
+					Map<String, Boolean> nextRegs = circuit.updateRegisters(state.getFirst(), state.getSecond());
+					inputs.forEach(input -> ts.getStates()
+							.stream()
+							.filter(newState -> newState.getFirst().equals(input) && newState.getSecond().equals(nextRegs))
+							.forEach(newState -> ts.addTransition(new TSTransition<>(state, input, newState))));
+				});
 	}
 
 	/**
