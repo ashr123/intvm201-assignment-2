@@ -741,7 +741,71 @@ public class FvmFacade
 	public <L, A> TransitionSystem<Pair<L, Map<String, Object>>, A, String> transitionSystemFromProgramGraph(
 			ProgramGraph<L, A> pg, Set<ActionDef> actionDefs, Set<ConditionDef> conditionDefs)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ans = new TransitionSystem<>();
+		AddStatesToTSFromPG(ans,pg,actionDefs);
+		Queue<Pair<L, Map<String, Object>>> currents = new LinkedList<>(ans.getInitialStates());
+		Set<Pair<L, Map<String, Object>>> visited = new HashSet<>();
+
+		while (!currents.isEmpty()){
+			Pair<L, Map<String, Object>> currentState = currents.poll();
+			if (!visited.contains(currentState)) {
+				visited.add(currentState);
+
+				for (Map.Entry<String, Object> var : currentState.getSecond().entrySet()){
+					ans.addAtomicProposition(var.getKey() + " = " + var.getValue());
+					ans.addToLabel(currentState, var.getKey() + " = " + var.getValue());
+				}
+				ans.addAtomicProposition(currentState.getFirst().toString());
+				ans.addToLabel(currentState, currentState.getFirst().toString());
+				for (PGTransition<L, A> tran : pg.getTransitions()) {
+					Map<String, Object> eta = new HashMap<>(currentState.getSecond());
+					if (tran.getFrom().equals(currentState.getFirst())) {
+						for (ConditionDef cond : conditionDefs) {
+							if (cond.evaluate(currentState.getSecond(), tran.getCondition())){
+								for(ActionDef a : actionDefs){
+									if(a.isMatchingAction(tran.getAction())) {
+										eta = a.effect(eta, tran.getAction());
+									}
+								}
+								Pair<L,Map<String,Object>> state = new Pair<>(tran.getTo(),eta);
+								ans.addState(state);
+								currents.add(state);
+
+								ans.addAction(tran.getAction());
+								ans.addTransition(new TSTransition<>(currentState,tran.getAction(),state));
+							}
+						}
+					}
+				}
+
+			}
+		}
+		return ans;
+		//throw new java.lang.UnsupportedOperationException();
+	}
+
+	private <L, A> void AddStatesToTSFromPG(TransitionSystem<Pair<L, Map<String, Object>>,A, String> ans, ProgramGraph<L,A> pg, Set<ActionDef> actionDefs) {
+		boolean emptyInits = false;
+		if (pg.getInitalizations().isEmpty()) {
+			emptyInits = true;
+			pg.addInitalization(new ArrayList<>());
+		}
+		for (L initLoc: pg.getInitialLocations()){
+			Map<String, Object> evaluateVars = new HashMap<>();
+			for (List<String> initList: pg.getInitalizations()){
+				for (String s: initList){
+					for (ActionDef a: actionDefs){
+						if (a.isMatchingAction(s))
+							evaluateVars = a.effect(evaluateVars, s);
+					}
+				}
+				Pair<L, Map<String, Object>> initState = new Pair<>(initLoc, evaluateVars);
+				ans.addState(initState);
+				ans.addInitialState(initState);
+			}
+		}
+		if (emptyInits)
+			pg.getInitalizations().clear();
 	}
 
 	/**
