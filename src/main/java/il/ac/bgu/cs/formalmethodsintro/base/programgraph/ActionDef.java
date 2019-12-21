@@ -14,7 +14,7 @@ public interface ActionDef
 	 */
 	static Map<String, Object> effect(Set<ActionDef> ads, Map<String, Object> eval, Object action)
 	{
-		return ads.parallelStream()
+		return ads.stream()
 				.filter(ad -> ad.isMatchingAction(action))
 				.findFirst()
 				.map(ad -> ad.effect(eval, action))
