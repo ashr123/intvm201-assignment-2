@@ -123,7 +123,7 @@ public class FvmFacade {
      * {@code ts}.
      */
     public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-        if (e.isEmpty())
+        if (e.isEmpty() || ts.getStates().contains(e.head()))
             return true;
         final AlternatingSequence<A, S> eNext = e.tail();
         if (eNext.isEmpty())
