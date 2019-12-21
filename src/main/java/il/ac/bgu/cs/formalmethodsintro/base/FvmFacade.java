@@ -21,6 +21,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -155,12 +156,8 @@ public class FvmFacade
 	 */
 	public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e)
 	{
-		if (!ts.getInitialStates().contains(e.head()))
-		{
-			return false;
-		}
-
-		return isExecutionFragment(ts, e);
+		return ts.getInitialStates().contains(e.head()) && isExecutionFragment(ts, e);
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
@@ -536,105 +533,82 @@ public class FvmFacade
 		Set<Set<String>> inputsPowerSet = Util.powerSet(c.getInputPortNames());
 
 		Set<Map<String, Boolean>> registersMaps = new HashSet<>();
-		for (Set<String> registersSet : registersPowerSet)
+		registersPowerSet.forEach(registersSet ->
 		{
 			Map<String, Boolean> registersMap = new HashMap<>();
-			for (String register : c.getRegisterNames())
-			{
-				if (registersSet.contains(register))
-					registersMap.put(register, true);
-				else
-					registersMap.put(register, false);
-			}
+			c.getRegisterNames().forEach(register -> registersMap.put(register, registersSet.contains(register)));
 			registersMaps.add(registersMap);
-		}
+		});
 
-		Set<Map<String, Boolean>> inputsMaps = new HashSet<>();
-		for (Set<String> inputsSet : inputsPowerSet)
-		{
-			Map<String, Boolean> inputsMap = new HashMap<>();
-			for (String input : c.getInputPortNames())
-			{
-				if (inputsSet.contains(input))
-					inputsMap.put(input, true);
-				else
-					inputsMap.put(input, false);
-			}
-			inputsMaps.add(inputsMap);
-		}
+		Set<Map<String, Boolean>> inputsMaps = inputsPowerSet.stream()
+				.map(inputsSet -> c.getInputPortNames().stream()
+						.collect(Collectors.toMap(Function.identity(), inputsSet::contains, (a, b) -> b)))
+				.collect(Collectors.toSet());
 
-		/***
+		/*
 		 * Adding all the initial states and states.
 		 */
-		for (Map<String, Boolean> inputsMap : inputsMaps)
+		inputsMaps.forEach(inputsMap ->
 		{
-			for (Map<String, Boolean> registersMap : registersMaps)
-			{
-				Pair<Map<String, Boolean>, Map<String, Boolean>> stateEntry = new Pair<>(inputsMap, registersMap);
-				states.add(stateEntry);
-				if (!stateEntry.getSecond().values().contains(true))
-					inits.add(stateEntry);
-			}
-		}
+			registersMaps.stream()
+					.map(registersMap -> new Pair<>(inputsMap, registersMap))
+					.forEach(stateEntry ->
+					{
+						states.add(stateEntry);
+						if (!stateEntry.getSecond().containsValue(true))
+							inits.add(stateEntry);
+					});
+		});
 		ts.addAllStates(states);
-		for (Pair<Map<String, Boolean>, Map<String, Boolean>> init : inits)
-		    ts.addInitialState(init);
+		inits.forEach(ts::addInitialState);
 
-		/***
+		/*
 		 * Adding all the actions.
 		 */
 		ts.addAllActions(inputsMaps);
 
-		/***
+		/*
 		 * Adding all the transitions.
 		 */
 		Set<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitions = new HashSet<>();
-		for (Map<String, Boolean> action : ts.getActions())
-			for (Pair<Map<String, Boolean>, Map<String, Boolean>> state : ts.getStates())
-				transitions.add(new TSTransition<>(state, action, new Pair<>(action, c.updateRegisters(state.first, state.second))));
-		for (TSTransition transition : transitions)
-			ts.addTransition(transition);
+		ts.getActions().forEach(action -> ts.getStates().stream()
+				.map(state -> new TSTransition<>(state, action, new Pair<>(action, c.updateRegisters(state.first, state.second))))
+				.forEach(transitions::add));
+		transitions.forEach(ts::addTransition);
 
 		Set<Pair<Map<String, Boolean>, Map<String, Boolean>>> newReachableStates = reach(ts);
-		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state : states)
+		states.stream().filter(state -> !newReachableStates.contains(state)).forEach(state ->
 		{
-			if (!newReachableStates.contains(state))
-			{
-				Set<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitionsToRemove = new HashSet<>();
-				for (TSTransition transition : transitions)
-                    if (transition.getFrom().equals(state) || transition.getTo().equals(state))
-                        transitionsToRemove.add(transition);
-				for (TSTransition transitionToRemove : transitionsToRemove)
-                    ts.removeTransition(transitionToRemove);
-				ts.removeState(state);
-			}
-		}
+			transitions.stream()
+					.filter(transition -> transition.getFrom().equals(state) || transition.getTo().equals(state))
+					.collect(Collectors.toSet())
+					.forEach(ts::removeTransition);
+			ts.removeState(state);
+		});
 
-		/***
+		/*
 		 * Adding all the atomic propositions.
 		 */
-		for (String input : c.getInputPortNames())
-            ts.addAtomicProposition(input);
-		for (String register : c.getRegisterNames())
-            ts.addAtomicProposition(register);
-		for (String output : c.getOutputPortNames())
-            ts.addAtomicProposition(output);
+		c.getInputPortNames().forEach(ts::addAtomicProposition);
+		c.getRegisterNames().forEach(ts::addAtomicProposition);
+		c.getOutputPortNames().forEach(ts::addAtomicProposition);
 
-		/***
+		/*
 		 * Adding all the labels.
 		 */
-		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state : ts.getStates())
+		ts.getStates().forEach(state ->
 		{
-			for (String input : state.first.keySet())
-                if (state.first.get(input))
-                    ts.addToLabel(state, input);
-			for (String register : state.second.keySet())
-                if (state.second.get(register)) ts.addToLabel(state, register);
-			Map<String, Boolean> outputs = c.computeOutputs(state.first, state.second);
-			for (String output : outputs.keySet())
-                if (outputs.get(output))
-                    ts.addToLabel(state, output);
-		}
+			state.getFirst().keySet().stream()
+					.filter(state.getFirst()::get)
+					.forEach(input -> ts.addToLabel(state, input));
+			state.getSecond().keySet().stream()
+					.filter(state.getSecond()::get)
+					.forEach(register -> ts.addToLabel(state, register));
+			Map<String, Boolean> outputs = c.computeOutputs(state.getFirst(), state.getSecond());
+			outputs.keySet().stream()
+					.filter(outputs::get)
+					.forEach(output -> ts.addToLabel(state, output));
+		});
 
 		return ts;
 	}
@@ -656,30 +630,30 @@ public class FvmFacade
 
 		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts = new TransitionSystem<>();
 
-        /***
-         * Adding all the actions.
-         */
+		/***
+		 * Adding all the actions.
+		 */
 		for (PGTransition<L, A> transition : pg.getTransitions())
-            if (!transition.getAction().equals(""))
-                ts.addAction(transition.getAction());
+			if (!transition.getAction().equals(""))
+				ts.addAction(transition.getAction());
 
-        /***
-         * Adding all the locations.
-         */
+		/***
+		 * Adding all the locations.
+		 */
 		Set<Map<String, Object>> evals = new HashSet<>();
 		for (List<String> actions : pg.getInitalizations())
 		{
 			Map<String, Object> eval = new HashMap<>();
 			for (String action : actions)
-                eval = ActionDef.effect(actionDefs, eval, action);
+				eval = ActionDef.effect(actionDefs, eval, action);
 			evals.add(eval);
 		}
 		if (evals.isEmpty())
 			evals.add(new HashMap<>());
 
-        /***
-         * Adding all the atomic propositions.
-         */
+		/***
+		 * Adding all the atomic propositions.
+		 */
 		for (L initLoc : pg.getInitialLocations())
 		{
 			for (Map<String, Object> eval : evals)
@@ -687,13 +661,13 @@ public class FvmFacade
 				Pair<L, Map<String, Object>> initState = new Pair<>(initLoc, eval);
 				ts.addInitialState(initState);
 				for (String var : eval.keySet())
-                    ts.addAtomicProposition(var + " = " + eval.get(var));
+					ts.addAtomicProposition(var + " = " + eval.get(var));
 			}
 		}
 
-        /***
-         * Adding all the transitions.
-         */
+		/***
+		 * Adding all the transitions.
+		 */
 		Queue<Pair<L, Map<String, Object>>> states = new LinkedList<>(ts.getStates());
 		while (!states.isEmpty())
 		{
@@ -712,7 +686,7 @@ public class FvmFacade
 							states.add(to);
 						}
 						if (ConditionDef.evaluate(conditionDefs, state.second, transition.getCondition()))
-                            ts.addTransition(new TSTransition<>(state, transition.getAction(), to));
+							ts.addTransition(new TSTransition<>(state, transition.getAction(), to));
 					}
 				}
 			}
@@ -721,18 +695,18 @@ public class FvmFacade
 		Set<Pair<L, Map<String, Object>>> statesTag = new HashSet<>(ts.getStates());
 		Set<Pair<L, Map<String, Object>>> reach = reach(ts);
 		for (Pair<L, Map<String, Object>> state : statesTag)
-            if (!reach.contains(state))
-                ts.removeState(state);
+			if (!reach.contains(state))
+				ts.removeState(state);
 
-        /***
-         * Adding all the labeling.
-         */
+		/***
+		 * Adding all the labeling.
+		 */
 		for (Pair<L, Map<String, Object>> state : ts.getStates())
 		{
 			if (state.first instanceof ArrayList<?>)
 			{
-                //noinspection unchecked
-                for (L l : (ArrayList<L>) state.first)
+				//noinspection unchecked
+				for (L l : (ArrayList<L>) state.first)
 				{
 					ts.addAtomicProposition(l.toString());
 					ts.addToLabel(state, l.toString());
@@ -774,7 +748,9 @@ public class FvmFacade
 	}
 
 	public <L, A> TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> transitionSystemFromChannelSystem(
-			ChannelSystem<L, A> cs, Set<ActionDef> actions, Set<ConditionDef> conditions)
+			ChannelSystem<L, A> cs,
+			Set<ActionDef> actions,
+			Set<ConditionDef> conditions)
 	{
 		ProgramGraph<List<L>, A> pg = new ProgramGraph<>();
 
@@ -789,30 +765,22 @@ public class FvmFacade
 
 			// init
 			if (pg1.getInitialLocations().contains(locij))
-			{
 				pg.setInitial(newLoc, true);
-			}
 		}
 
 		// trans
 		for (PGTransition<L, A> tran : pg1.getTransitions())
-		{
-			PGTransition<List<L>, A> newTran = new PGTransition<>(
-					Arrays.asList(tran.getFrom()), tran.getCondition(), tran.getAction(), Arrays.asList(tran.getTo()));
-			pg.addTransition(newTran);
-		}
+			pg.addTransition(new PGTransition<>(
+					Arrays.asList(tran.getFrom()), tran.getCondition(), tran.getAction(), Arrays.asList(tran.getTo())));
 
 		// initializations
 		for (List<String> inits : pg1.getInitalizations())
-		{
 			pg.addInitalization(inits);
-		}
 
 		// rest pg-s
 		for (int i = 1; i < cs.getProgramGraphs().size(); i++)
 		{
-			ProgramGraph<L, A> pgi = cs.getProgramGraphs().get(i);
-			pg = addProgramGraphs(pg, pgi);
+			pg = addProgramGraphs(pg, cs.getProgramGraphs().get(i));
 		}
 
 		Set<ActionDef> actionDefs = new LinkedHashSet<>();
@@ -867,94 +835,74 @@ public class FvmFacade
 			}
 		}
 
-		for (PGTransition<L, A> pgiTransition : pgi.getTransitions())
-		{
-			if (!parser.isOneSidedAction(pgiTransition.getAction().toString()))
-			{
-				for (List<L> loc : pgAll.getLocations())
-				{
-					List<L> from = new ArrayList<>(loc);
-					from.add(pgiTransition.getFrom());
-					List<L> to = new ArrayList<>(loc);
-					to.add(pgiTransition.getTo());
-					PGTransition<List<L>, A> newTran = new PGTransition<>(
-							from, pgiTransition.getCondition(), pgiTransition.getAction(), to);
-					pg.addTransition(newTran);
-				}
-			}
-		}
+		pgi.getTransitions().stream()
+				.filter(pgiTransition -> !parser.isOneSidedAction(pgiTransition.getAction().toString()))
+				.forEach(pgiTransition -> pgAll.getLocations()
+						.forEach(loc ->
+						{
+							List<L> from = new ArrayList<>(loc);
+							from.add(pgiTransition.getFrom());
+							List<L> to = new ArrayList<>(loc);
+							to.add(pgiTransition.getTo());
+							pg.addTransition(new PGTransition<>(from, pgiTransition.getCondition(), pgiTransition.getAction(), to));
+						}));
 
 		transitions = new HashSet<>(pgAll.getTransitions());
-		for (PGTransition<List<L>, A> pgTransition : transitions)
-		{
-			for (PGTransition<L, A> pgiTransition : pgi.getTransitions())
-			{
-				A act = getHandShakeAction(pgTransition.getAction(), pgiTransition.getAction(), parser);
-				if (act != null)
+		transitions.forEach(pgTransition -> pgi.getTransitions()
+				.forEach(pgiTransition ->
 				{
-					List<L> from = new ArrayList<>(pgTransition.getFrom());
-					from.add(pgiTransition.getFrom());
-					List<L> to = new ArrayList<>(pgTransition.getTo());
-					to.add(pgiTransition.getTo());
-					PGTransition<List<L>, A> newTransition = new PGTransition<>(
-							from, mergeConditions(pgTransition.getCondition(), pgiTransition.getCondition()), act, to);
-					pg.addTransition(newTransition);
-				}
-			}
-		}
+					A act = getHandShakeAction(pgTransition.getAction(), pgiTransition.getAction(), parser);
+					if (act != null)
+					{
+						List<L> from = new ArrayList<>(pgTransition.getFrom());
+						from.add(pgiTransition.getFrom());
+						List<L> to = new ArrayList<>(pgTransition.getTo());
+						to.add(pgiTransition.getTo());
+						PGTransition<List<L>, A> newTransition = new PGTransition<>(
+								from, mergeConditions(pgTransition.getCondition(), pgiTransition.getCondition()), act, to);
+						pg.addTransition(newTransition);
+					}
+				}));
 
 		// initializations
 		Set<List<String>> inits = new HashSet<>(pgAll.getInitalizations());
-		for (List<String> pgInits : inits)
-		{
-			for (List<String> pgiInits : pgi.getInitalizations())
-			{
-				List<String> init = new ArrayList<>(pgInits);
-				init.addAll(pgiInits);
-				pg.addInitalization(init);
-			}
-		}
+		inits.forEach(pgInits -> pgi.getInitalizations()
+				.forEach(pgiInits ->
+				{
+					List<String> init = new ArrayList<>(pgInits);
+					init.addAll(pgiInits);
+					pg.addInitalization(init);
+				}));
 		if (pgAll.getInitalizations().isEmpty())
-		{
-			for (List<String> init : pgi.getInitalizations())
-			{
-				pg.addInitalization(init);
-			}
-		}
+			pgi.getInitalizations().forEach(pg::addInitalization);
 
 		if (pgi.getInitalizations().isEmpty())
-		{
-			for (List<String> init : pgAll.getInitalizations())
-			{
-				pg.addInitalization(init);
-			}
-		}
+			pgAll.getInitalizations().forEach(pg::addInitalization);
 		return pg;
 	}
 
-	private <A> A getHandShakeAction(A pgaction, A pgiaction, ParserBasedInterleavingActDef parser)
+	private <A> A getHandShakeAction(A pgAction, A pgiAction, ParserBasedInterleavingActDef parser)
 	{
-		if (!(pgaction instanceof String) || !(pgiaction instanceof String))
-			return null;
-		if (!parser.isOneSidedAction(pgaction.toString()) || !parser.isOneSidedAction(pgiaction.toString()))
+		if (!(pgAction instanceof String &&
+				pgiAction instanceof String &&
+				parser.isOneSidedAction(pgAction.toString()) &&
+				parser.isOneSidedAction(pgiAction.toString())))
 			return null;
 
-		if (((String) pgaction).contains("?") && ((String) pgiaction).contains("!"))
+		if (((String) pgAction).contains("?") && ((String) pgiAction).contains("!"))
 		{
-			String pgchannel = ((String) pgaction).substring(0, ((String) pgaction).indexOf("?"));
-			String pgichannel = ((String) pgiaction).substring(0, ((String) pgiaction).indexOf("!"));
-			if (pgchannel.equals(pgichannel))
-				return (A) String.format("%s|%s", pgaction, pgiaction);
+			String pgChannel = ((String) pgAction).substring(0, ((String) pgAction).indexOf("?"));
+			String pgiChannel = ((String) pgiAction).substring(0, ((String) pgiAction).indexOf("!"));
+			if (pgChannel.equals(pgiChannel))
+				return (A) String.format("%s|%s", pgAction, pgiAction);
 		}
 
-		if (((String) pgaction).contains("!") && ((String) pgiaction).contains("?"))
+		if (((String) pgAction).contains("!") && ((String) pgiAction).contains("?"))
 		{
-			String pgchannel = ((String) pgaction).substring(0, ((String) pgaction).indexOf("!"));
-			String pgichannel = ((String) pgiaction).substring(0, ((String) pgiaction).indexOf("?"));
-			if (pgchannel.equals(pgichannel))
-			{
-				return (A) String.format("%s|%s", pgaction, pgiaction);
-			}
+			String pgChannel = ((String) pgAction).substring(0, ((String) pgAction).indexOf("!"));
+			String pgiChannel = ((String) pgiAction).substring(0, ((String) pgiAction).indexOf("?"));
+			if (pgChannel.equals(pgiChannel))
+				return (A) String.format("%s|%s", pgAction, pgiAction);
 		}
 
 		return null;
@@ -1036,7 +984,7 @@ public class FvmFacade
 	private void sub(NanoPromelaParser.StmtContext stmt, Map<String, Set<PGTransition<String, String>>> subTransition)
 	{
 		if (subTransition.containsKey(stmt.getText()))
-            return;
+			return;
 
 		Set<PGTransition<String, String>> transition = new HashSet<>();
 
@@ -1045,11 +993,11 @@ public class FvmFacade
 			transition.add(new PGTransition<>(stmt.getText(), COND_TRUE, stmt.getText(), LOC_EXIT));
 			subTransition.put(stmt.getText(), transition);
 		} else if (stmt.ifstmt() != null)
-            ifSub(stmt, subTransition, transition);
-        else if (stmt.dostmt() != null)
-            doSub(stmt, subTransition);
-        else
-            concatSub(stmt, subTransition);
+			ifSub(stmt, subTransition, transition);
+		else if (stmt.dostmt() != null)
+			doSub(stmt, subTransition);
+		else
+			concatSub(stmt, subTransition);
 	}
 
 	private void ifSub(NanoPromelaParser.StmtContext stmt, Map<String, Set<PGTransition<String, String>>> subTransition, Set<PGTransition<String, String>> transition)
