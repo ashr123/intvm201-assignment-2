@@ -1,13 +1,8 @@
 package il.ac.bgu.cs.formalmethodsintro.base.transitionsystem;
 
-import java.util.*;
+import il.ac.bgu.cs.formalmethodsintro.base.exceptions.*;
 
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.DeletionOfAttachedActionException;
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.DeletionOfAttachedAtomicPropositionException;
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.DeletionOfAttachedStateException;
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.FVMException;
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
-import il.ac.bgu.cs.formalmethodsintro.base.exceptions.TransitionSystemPart;
+import java.util.*;
 
 /**
  * Interface of a transition system, as defined in page 20 of the book.
@@ -154,11 +149,12 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	public void removeState(STATE state) throws FVMException
 	{
 		transitions.parallelStream()
-				.filter((t) -> (t.getFrom().equals(state) || t.getTo().equals(state)))
-				.findFirst().map(t ->
-		{
-			throw new DeletionOfAttachedStateException(state, TransitionSystemPart.TRANSITIONS);
-		});
+				.filter(t -> t.getFrom().equals(state) || t.getTo().equals(state))
+				.findFirst()
+				.map(t ->
+				{
+					throw new DeletionOfAttachedStateException(state, TransitionSystemPart.TRANSITIONS);
+				});
 
 		states.remove(state);
 		initialStates.remove(state);

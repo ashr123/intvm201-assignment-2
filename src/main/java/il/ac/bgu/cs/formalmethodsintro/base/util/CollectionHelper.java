@@ -1,16 +1,11 @@
 package il.ac.bgu.cs.formalmethodsintro.base.util;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.PGTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Some methods to support literal collections.
@@ -28,17 +23,16 @@ public class CollectionHelper
 		return new TSTransition<>(from, action, to);
 	}
 
-	/*
-	public static <T1,T2> Pair<T1, T2> p(T1 x, T2 y) {
-		return new Pair<T1, T2>(x, y);
-	}
-	 */
-	// The above is better but takes ages to build the project (javac bug?)
-	@SuppressWarnings("rawtypes")
-	public static <T1, T2> Pair p(T1 x, T2 y)
+	public static <T1, T2> Pair<T1, T2> p(T1 x, T2 y)
 	{
 		return new Pair<>(x, y);
 	}
+//	// The above is better but takes ages to build the project (javac bug?)
+//	@SuppressWarnings("rawtypes")
+//	public static <T1, T2> Pair p(T1 x, T2 y)
+//	{
+//		return new Pair<>(x, y);
+//	}
 
 	@SafeVarargs
 	public static <T> Set<T> set(T... ses)
