@@ -815,166 +815,224 @@ public class FvmFacade
 			ChannelSystem<L, A> cs, Set<ActionDef> actions, Set<ConditionDef> conditions)
 	{
 		TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts = new TransitionSystem<>();
-		List<ProgramGraph<L, A>> programGraphs = cs.getProgramGraphs();
-		Set<ActionDef> setActDefs = new HashSet<>();
-		InterleavingActDef actionDef = new ParserBasedInterleavingActDef();
-		setActDefs.add(actionDef);
-		setActDefs.add(new ParserBasedActDef());
-		Set<ActionDef> complexActionDefSet = new HashSet<>();
-		complexActionDefSet.add(new ParserBasedInterleavingActDef());
-		ConditionDef conditionDef = new ParserBasedCondDef();
-		Set<ConditionDef> setCondDefs = new HashSet<>();
-		setCondDefs.add(conditionDef);
 
 
-		List<List<String>> mixedInitializations = new ArrayList<>();
-		wrapperCreateAllPossibleLists(new ArrayList<>(programGraphs.parallelStream()
-				.map(ProgramGraph::getInitalizations)
-				.collect(Collectors.toList())))
-				.forEach(mixedInitializations::addAll);
-		Set<Map<String, Object>> initials = new HashSet<>();
-		for (List<String> initialization : mixedInitializations)
-		{
-			Map<String, Object> eval = new HashMap<>();
-			for (String action : initialization)
-				eval = ActionDef.effect(setActDefs, eval, action);
-			initials.add(eval);
-		}
-		if (initials.size() == 0)
-			initials.add(new HashMap<>());
+		List<ProgramGraph<L, A>> pgList = cs.getProgramGraphs();
 
-		Set<Pair<List<L>, Map<String, Object>>> initStates = new HashSet<>();
-		wrapperCreateAllPossibleLists(programGraphs.parallelStream()
-				.map(ProgramGraph::getInitialLocations)
-				.collect(Collectors.toList()))
-				.forEach(location -> initials.stream()
-						.map(init -> new Pair<>(location, init))
-						.forEach(initStates::add));
+		//states
+		Set<Map<String, Object>> variables = make_variables_pgs(pgList);
+		Set<List<L>> list_of_init_states = make_init_states_pgs(pgList);
+		Set<Pair<List<L>, Map<String, Object>>> init_states = new HashSet<>();
 
-		Queue<Pair<List<L>, Map<String, Object>>> currents = new LinkedList<>();
-		for (Pair<List<L>, Map<String, Object>> state : initStates)
-		{
-			ts.addInitialState(state);
-			currents.add(state);
 
-			addAPAndLabelToTSFromChanel(ts, state);
+		ActionDef async = new ParserBasedActDef();
+		InterleavingActDef sync = new ParserBasedInterleavingActDef();
+		ConditionDef cond = new ParserBasedCondDef();
+		List<TSTransition<Pair<List<L>, Map<String, Object>>, A>> transitionList = new LinkedList<>();
+		Set<Pair<List<L>, Map<String, Object>>> sawThem = new HashSet<>();
 
+		for (List<L> l : list_of_init_states)
+			for (Map<String, Object> m : variables)
+				init_states.add(new Pair<>(l, m));
+
+
+		for (Pair<List<L>, Map<String, Object>> state : init_states) {
+			sawThem.add(state);
+			transitionList.addAll(recursive_transition(cs, state, 0, async, sync, cond, ts, sawThem));
 		}
 
-		while (!currents.isEmpty())
-		{
-			Pair<List<L>, Map<String, Object>> currentNewLocation = currents.poll();
-			Map<Integer, List<PGTransition<L, A>>> oneSideActions = new HashMap<>();
-			for (int i = 0; i < programGraphs.size(); i++)
-			{
-				ProgramGraph<L, A> currentPg = programGraphs.get(i);
-				L currentLocation = currentNewLocation.getFirst().get(i);
+		for (TSTransition<Pair<List<L>, Map<String, Object>>, A> t : transitionList) {
+			if (!ts.getStates().contains(t.getFrom()))
+				ts.addState(t.getFrom());
+			if (!ts.getStates().contains(t.getTo()))
+				ts.addState(t.getTo());
+			if (!ts.getActions().contains(t.getAction()))
+				ts.addAction(t.getAction());
+			ts.addTransition(t);
+		}
 
-				for (PGTransition<L, A> pgTransition : currentPg.getTransitions())
-				{
-					if (pgTransition.getFrom().equals(currentLocation) &&
-							ConditionDef.evaluate(setCondDefs, currentNewLocation.getSecond(), pgTransition.getCondition()))
-					{
-						if (actionDef.isOneSidedAction(pgTransition.getAction().toString()))
-						{
-							if (!oneSideActions.containsKey(i))
-							{
-								oneSideActions.put(i, new ArrayList<>());
-							}
-							oneSideActions.get(i).add(pgTransition);
-						} else
-						{
-							List<L> newLocation = new ArrayList<>(currentNewLocation.getFirst());
-							newLocation.set(i, pgTransition.getTo());
-							addActAndTranToTSFromChanel(ts, setActDefs, currents, currentNewLocation, pgTransition.getAction(), newLocation);
-						}
-					}
-				}
-				if (oneSideActions.size() > 0)
-				{
-					List<Set<Pair<Integer, PGTransition<L, A>>>> allComplexTransitions = new ArrayList<>();
-					for (Integer key : oneSideActions.keySet())
-					{
-						List<PGTransition<L, A>> transitions = oneSideActions.get(key);
-						allComplexTransitions.add(transitions.parallelStream()
-								.map(transition -> new Pair<>(key, transition))
-								.collect(Collectors.toSet()));
-					}
-					List<List<Pair<Integer, PGTransition<L, A>>>> allComplexTransitionPermutations = wrapperCreateAllPossibleLists(allComplexTransitions);
-					allComplexTransitionPermutations.forEach(complexTransition ->
-					{
-						StringBuilder action = new StringBuilder();
-						List<L> newLocation = new ArrayList<>(currentNewLocation.getFirst());
-						List<A> actions2 = new ArrayList<>();
-						complexTransition.forEach(pair ->
-						{
-							if (action.length() != 0)
-								action.append("|");
-							action.append(pair.getSecond().getAction());
-							actions2.add(pair.getSecond().getAction());
-							newLocation.set(pair.getFirst(), pair.getSecond().getTo());
-						});
-						if (!actionDef.isOneSidedAction(actions2.toString()) && complexTransition.size() > 1)
-							addActAndTranToTSFromChanel(ts, complexActionDefSet, currents, currentNewLocation, (A) action.toString(), newLocation);
-					});
-				}
+
+		for (Pair<List<L>, Map<String, Object>> p : init_states) {
+			ts.addInitialState(p);
+		}
+
+		//atomic prop
+		for (Pair<List<L>, Map<String, Object>> state : ts.getStates()) {
+			for (L small_state : state.getFirst()) {
+				ts.addAtomicProposition(small_state.toString());
+				ts.addToLabel(state, small_state.toString());
+			}
+			for (Map.Entry<String, Object> var_vals : state.getSecond().entrySet()) {
+				ts.addAtomicProposition(var_vals.getKey() + " = " + var_vals.getValue().toString());
+				ts.addToLabel(state, var_vals.getKey() + " = " + var_vals.getValue().toString());
 			}
 		}
+
 		return ts;
 //        throw new java.lang.UnsupportedOperationException();
 	}
 
-	private <L, A> void addActAndTranToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Set<ActionDef> setActDefs, Queue<Pair<List<L>, Map<String, Object>>> currents, Pair<List<L>, Map<String, Object>> state, A action, List<L> new_location)
-	{
-		Map<String, Object> newEval = ActionDef.effect(setActDefs, state.getSecond(), action);
-		if (newEval != null)
-		{
-			Pair<List<L>, Map<String, Object>> newState = new Pair<>(new_location, newEval);
-			TSTransition<Pair<List<L>, Map<String, Object>>, A> transition = new TSTransition<>(state, action, newState);
-			if (!ts.getStates().contains(newState))
-			{
-				currents.add(newState);
-				ts.addState(newState);
+	private <A, L> List<TSTransition<Pair<List<L>, Map<String, Object>>, A>> recursive_transition(ChannelSystem<L, A> cs, Pair<List<L>, Map<String, Object>> state, int index, ActionDef async, InterleavingActDef sync, ConditionDef cond, TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Set<Pair<List<L>, Map<String, Object>>> sawThem) {
+		List<TSTransition<Pair<List<L>, Map<String, Object>>, A>> tranList = new LinkedList<>();
+		if (index == cs.getProgramGraphs().size())
+			return tranList;
+		ProgramGraph<L, A> pg = cs.getProgramGraphs().get(index);
+
+		for (PGTransition<L, A> transition : pg.getTransitions()) {
+			if (state.getFirst().get(index).equals(transition.getFrom()))
+				if (cond.evaluate(state.getSecond(), transition.getCondition())) {
+					String actionString = transition.getAction().toString();
+					if (sync.isOneSidedAction(transition.getAction().toString())) {
+						int index2 = 0;
+						for (ProgramGraph<L, A> pgs : cs.getProgramGraphs()) {
+							for (PGTransition<L, A> transition2 : pgs.getTransitions()) {
+								String actionString2 = transition2.getAction().toString();
+								if (state.getFirst().get(index2).equals(transition2.getFrom()) && sync.isOneSidedAction(transition2.getAction().toString())) {
+
+									if (((actionString.contains("!") && actionString2.contains("?")) ||
+											(actionString.contains("?") && actionString2.contains("!"))) &&
+											actionString.substring(0, actionString.length() - 1).equals(actionString2.substring(0, actionString2.length() - 1))) {
+										if (cond.evaluate(state.getSecond(), transition2.getCondition())) {
+											String newAction = "";
+											if (index < index2)
+												newAction = actionString + "|" + actionString2;
+											else
+												newAction = actionString2 + "|" + actionString;
+											List<L> myCopy = new LinkedList<>(state.getFirst());
+											myCopy.set(index, transition.getTo());
+											myCopy.set(index2, transition2.getTo());
+											A castAction = (A) newAction;
+
+											Pair<List<L>, Map<String, Object>> newState = new Pair<>(myCopy, sync.effect(state.getSecond(), castAction));
+											if (!sawThem.contains(newState)) {
+												sawThem.add(newState);
+												tranList.addAll(recursive_transition(cs, newState, 0, async, sync, cond, ts, sawThem));
+											}
+											tranList.add(new TSTransition<>(state, castAction, newState));
+
+										}
+									}
+								}
+							}
+							index2++;
+						}
+					} else {
+						List<L> myCopy = new LinkedList<>(state.getFirst());
+						myCopy.set(index, transition.getTo());
+						Pair<List<L>, Map<String, Object>> newState = new Pair<>(myCopy, async.effect(state.getSecond(), transition.getAction()));
+						if (newState.second != null) {
+							if (!sawThem.contains(newState)) {
+								sawThem.add(newState);
+								tranList.addAll(recursive_transition(cs, newState, 0, async, sync, cond, ts, sawThem));
+
+							}
+							tranList.add(new TSTransition<>(state, transition.getAction(), newState));
+						}
+
+					}
+				}
+		}
+		tranList.addAll(recursive_transition(cs, state, index + 1, async, sync, cond, ts, sawThem));
+		return tranList;
+	}
+
+	private void updateDynamicArray(int size, int[] bases, int[] dynamic_number) {
+		boolean carry = true;
+		for (int k = size - 1; k >= 0; k--) {
+			if (carry && dynamic_number[k] + 1 == bases[k]) {
+				carry = true;
+				dynamic_number[k] = 0;
+			} else {
+				carry = false;
+				dynamic_number[k] = dynamic_number[k] + 1;
 			}
-			ts.addAction(action);
-			ts.addTransition(transition);
-			addAPAndLabelToTSFromChanel(ts, newState);
 		}
 	}
 
-	private <L, A> void addAPAndLabelToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Pair<List<L>, Map<String, Object>> state)
-	{
-		state.getFirst().forEach(loc -> ts.addToLabel(state, loc.toString()));
-		state.getSecond().forEach((key, value) -> ts.addToLabel(state, key + " = " + value.toString()));
-	}
+	private <A, L> Set<Map<String, Object>> make_variables_pgs(List<ProgramGraph<L, A>> pgList) {
 
-	private <T> List<List<T>> wrapperCreateAllPossibleLists(List<Set<T>> items)
-	{
-		List<List<T>> ans = new ArrayList<>();
-		createAllPossibleLists(items, ans, new ArrayList<>(), 0);
-		return ans;
-	}
+		Map<String, Set<Integer>> args = new HashMap<>();
 
-	private <T> void createAllPossibleLists(List<Set<T>> items, List<List<T>> ans, List<T> currList, int pos)
-	{
-		if (pos == items.size())
-		{
-			ans.add(currList);
-		} else
-		{
-			Set<T> indexList = items.get(pos);
-
-			if (indexList.isEmpty())
-				createAllPossibleLists(items, ans, currList, pos + 1);
-
-			for (T item : indexList)
-			{
-				List<T> currentList = new ArrayList<>(currList);
-				currentList.add(item);
-				createAllPossibleLists(items, ans, currentList, pos + 1);
-			};
+		for (ProgramGraph<L, A> pg : pgList) {
+			for (List<String> l : pg.getInitalizations()) {
+				for (String s : l) {
+					String[] var_val = s.split(":=");
+					for (int i = 0; i < var_val.length; i++) {
+						var_val[i] = var_val[i].replaceAll("\\s+", "");
+					}
+					if (args.keySet().contains(var_val[0]))
+						args.get(var_val[0]).add(Integer.valueOf((var_val[1])));
+					else {
+						Set<Integer> mySet = new HashSet<>();
+						mySet.add(Integer.valueOf(var_val[1]));
+						args.put(var_val[0], mySet);
+					}
+				}
+			}
 		}
+
+		Set<Map<String, Object>> permotations = new HashSet<>();
+		int size = args.size();
+
+		Object[][] array_of_values = new Object[size][];
+
+		String[] array_of_vars = new String[size];
+		array_of_vars = args.keySet().toArray(array_of_vars);
+
+		int[] bases = new int[size];
+		int[] dynamic_number = new int[size];
+		int size_all = 1;
+
+		for (int i = 0; i < array_of_values.length; i++) {
+			array_of_values[i] = args.get(array_of_vars[i]).toArray();
+			bases[i] = array_of_values[i].length;
+			dynamic_number[i] = 0;
+			size_all = size_all * bases[i];
+		}
+
+		for (int i = 0; i < size_all; i++) {
+			Map<String, Object> map = new HashMap<>();
+			for (int j = 0; j < size; j++)
+				map.put(array_of_vars[j], array_of_values[j][dynamic_number[j]]); //the i here might be j
+			permotations.add(map);
+
+			// update dynamic_number
+			updateDynamicArray(size, bases, dynamic_number);
+		}
+
+		return permotations;
 	}
+
+	private <L, A> Set<List<L>> make_init_states_pgs(List<ProgramGraph<L, A>> pgList) {
+
+		Set<List<L>> state_list = new HashSet<>();
+		int size = pgList.size();
+
+		Object[][] array_of_locations = new Object[size][];
+		int[] bases = new int[size];
+		int[] dynamic_number = new int[size];
+		int size_all = 1;
+
+		for (int i = 0; i < array_of_locations.length; i++) {
+			array_of_locations[i] = pgList.get(i).getInitialLocations().toArray();
+			bases[i] = array_of_locations[i].length;
+			dynamic_number[i] = 0;
+			size_all = size_all * bases[i];
+		}
+
+		for (int i = 0; i < size_all; i++) {
+			List<L> state = new LinkedList<>();
+			for (int j = 0; j < size; j++)
+				state.add((L) array_of_locations[j][dynamic_number[j]]);
+			state_list.add(state);
+
+			// update dynamic_number
+			updateDynamicArray(size, bases, dynamic_number);
+		}
+
+		return state_list;
+	}
+
 
 	/**
 	 * Construct a program graph from nanopromela code.
