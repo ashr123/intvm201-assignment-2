@@ -6,7 +6,7 @@ hsreadstmt  : ZEROCAPACITYCHANNAME '?' (VARNAME)? ;
 hswritestmt : ZEROCAPACITYCHANNAME '!' (intexpr)? ;
 
 joined: ((hsreadstmt '|' hswritestmt) | (hswritestmt '|' hsreadstmt)) EOF;
-onesided: (hsreadstmt | hswritestmt) EOF;  
+onesided: (hsreadstmt | hswritestmt) EOF;
 //---------------------------------------------------------------------------
 
 
@@ -29,7 +29,7 @@ option: '::' boolexpr '->' stmt ;
 
 
 intexpr
- : intexpr POW int expr           				
+ : intexpr POW intexpr
  | MINUS intexpr                                                       
  | intexpr op=(MULT | DIV | MOD) intexpr      
  | intexpr op=(PLUS | MINUS) intexpr          

@@ -72,10 +72,12 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 */
 	public void removeAction(ACTION action) throws FVMException
 	{
-		transitions.parallelStream().filter(t -> t.getAction().equals(action)).forEach(t ->
-		{
-			throw new DeletionOfAttachedActionException(action, TransitionSystemPart.TRANSITIONS);
-		});
+		transitions.parallelStream()
+				.filter(t -> t.getAction().equals(action))
+				.forEach(t ->
+				{
+					throw new DeletionOfAttachedActionException(action, TransitionSystemPart.TRANSITIONS);
+				});
 
 		actions.remove(action);
 	}
@@ -97,9 +99,9 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	 * {@code aState} can already be a part of {@code this}, but this is not
 	 * mandatory - it is added to the system it not.
 	 *
-	 * @param aState    A state to add to the set of initial states.
-//	 * @param isInitial Whether {@code state} should be an initial state of
-//	 *                  {@code this}.
+	 * @param aState A state to add to the set of initial states.
+	 *               //	 * @param isInitial Whether {@code state} should be an initial state of
+	 *               //	 *                  {@code this}.
 	 */
 	public void addInitialState(STATE aState)
 	{

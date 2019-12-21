@@ -14,14 +14,8 @@ public interface ConditionDef
 	 */
 	static boolean evaluate(Set<ConditionDef> cfs, Map<String, Object> eval, String condition)
 	{
-		for (ConditionDef cf : cfs)
-		{
-			if (cf.evaluate(eval, condition))
-			{
-				return true;
-			}
-		}
-		return false;
+		return cfs.parallelStream()
+				.anyMatch(cf -> cf.evaluate(eval, condition));
 	}
 
 	/**

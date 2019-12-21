@@ -14,14 +14,11 @@ public interface ActionDef
 	 */
 	static Map<String, Object> effect(Set<ActionDef> ads, Map<String, Object> eval, Object action)
 	{
-		for (ActionDef ad : ads)
-		{
-			if (ad.isMatchingAction(action))
-			{
-				return ad.effect(eval, action);
-			}
-		}
-		return eval;
+		return ads.parallelStream()
+				.filter(ad -> ad.isMatchingAction(action))
+				.findFirst()
+				.map(ad -> ad.effect(eval, action))
+				.orElse(eval);
 	}
 
 	/*
@@ -29,7 +26,8 @@ public interface ActionDef
 	 */
 	static boolean isMatchingAction(Set<ActionDef> ads, Object candidate)
 	{
-		return ads.stream().anyMatch(ad -> ad.isMatchingAction(candidate));
+		return ads.stream()
+				.anyMatch(ad -> ad.isMatchingAction(candidate));
 	}
 
 	/**
