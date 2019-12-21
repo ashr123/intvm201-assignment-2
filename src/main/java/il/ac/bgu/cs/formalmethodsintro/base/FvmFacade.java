@@ -5,6 +5,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.automata.MultiColorAutomaton;
 import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ChannelSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ParserBasedInterleavingActDef;
 import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
+import il.ac.bgu.cs.formalmethodsintro.base.exceptions.ActionNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
 import il.ac.bgu.cs.formalmethodsintro.base.nanopromela.NanoPromelaFileReader;
@@ -123,14 +124,22 @@ public class FvmFacade {
      * {@code ts}.
      */
     public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-        if (e.isEmpty() || ts.getStates().contains(e.head()))
+        if (e.isEmpty())
+            return true;
+        if (!ts.getStates().contains(e.head()))
+            throw new StateNotFoundException(e.head());
+        if (e.size()==1)
             return true;
         final AlternatingSequence<A, S> eNext = e.tail();
         if (eNext.isEmpty())
             return false;
+        if (!ts.getActions().contains(eNext.head()))
+            throw new ActionNotFoundException(eNext.head());
         final AlternatingSequence<S, A> eNext2 = eNext.tail();
         if (eNext2.isEmpty())
             return false;
+        if (!ts.getStates().contains(eNext2.head()))
+            throw new StateNotFoundException(eNext2.head());
         if (ts.getTransitions().contains(new TSTransition<>(e.head(), eNext.head(), eNext2.head())))
             return isExecutionFragment(ts, eNext2);
         return false;
