@@ -15,7 +15,7 @@ spec : stmt EOF ;
 
 
 stmt: ifstmt | dostmt | assstmt | chanreadstmt | chanwritestmt | atomicstmt | skipstmt | stmt ';' stmt ;
-      
+
 ifstmt        : 'if' option+ 'fi' ;
 dostmt  	  : 'do' option+ 'od' ;
 assstmt       : VARNAME ':=' intexpr ;
@@ -26,31 +26,27 @@ skipstmt      : 'skip' ;
 
 option: '::' boolexpr '->' stmt ; 
 
-
-
 intexpr
  : intexpr POW intexpr
- | MINUS intexpr                                                       
- | intexpr op=(MULT | DIV | MOD) intexpr      
- | intexpr op=(PLUS | MINUS) intexpr          
+ | MINUS intexpr
+ | intexpr op=(MULT | DIV | MOD) intexpr
+ | intexpr op=(PLUS | MINUS) intexpr
  | INT 
  | 'size(' CHANNAME ')'
- | VARNAME                               
+ | VARNAME
  | OPAR intexpr CPAR 
  ;
 
 boolexpr
  : NOT boolexpr
  | boolexpr AND boolexpr
- | boolexpr OR boolexpr                                           
+ | boolexpr OR boolexpr
  | intexpr op=(LTEQ | GTEQ | LT | GT) intexpr 
  | intexpr op=(EQ | NEQ) intexpr
  | TRUE
  | FALSE 
  | OPAR boolexpr CPAR  
  ;
-
-
 
 OR : '||';
 AND : '&&';
@@ -85,7 +81,6 @@ INT
 VARNAME 
 : [a-z] [a-zA-Z_0-9]*
  ;
- 
 
 CHANNAME 
   : 
@@ -96,7 +91,6 @@ ZEROCAPACITYCHANNAME
   : 
   '_' [a-zA-Z_0-9]*
   ;
-
   
 COMMENT
  : '#' ~[\r\n]* -> skip
@@ -109,4 +103,3 @@ SPACE
 OTHER
  : . 
  ;
- 

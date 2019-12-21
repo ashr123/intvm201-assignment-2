@@ -72,16 +72,9 @@ public class MultiColorAutomaton<State, L>
 
 	public void setAccepting(State s, int color)
 	{
-		Set<State> acc = accepting.get(color);
-
-		if (acc == null)
-		{
-			acc = new HashSet<>();
-			accepting.put(color, acc);
-		}
 
 		addState(s);
-		acc.add(s);
+		accepting.computeIfAbsent(color, k -> new HashSet<>()).add(s);
 	}
 
 	public void setInitial(State s)

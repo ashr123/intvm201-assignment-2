@@ -741,26 +741,22 @@ public class FvmFacade
 			{
 				visited.add(currentState);
 
-				for (Map.Entry<String, Object> var : currentState.getSecond().entrySet())
-				{
-					ts.addToLabel(currentState, var.getKey() + " = " + var.getValue());
-				}
+				currentState.getSecond()
+						.forEach((key, value) -> ts.addToLabel(currentState, key + " = " + value));
 				ts.addToLabel(currentState, currentState.getFirst().toString());
 				for (PGTransition<L, A> transition : pg.getTransitions())
 				{
 					Map<String, Object> eta = new HashMap<>(currentState.getSecond());
-					if (transition.getFrom().equals(currentState.getFirst()))
+					if (transition.getFrom().equals(currentState.getFirst()) &&
+							ConditionDef.evaluate(conditionDefs, eta, transition.getCondition()))
 					{
-						if (ConditionDef.evaluate(conditionDefs, eta, transition.getCondition()))
-						{
-							eta = ActionDef.effect(actionDefs, eta, transition.getAction());
-							Pair<L, Map<String, Object>> state = new Pair<>(transition.getTo(), eta);
-							ts.addState(state);
-							currents.add(state);
+						eta = ActionDef.effect(actionDefs, eta, transition.getAction());
+						Pair<L, Map<String, Object>> state = new Pair<>(transition.getTo(), eta);
+						ts.addState(state);
+						currents.add(state);
 
-							ts.addAction(transition.getAction());
-							ts.addTransition(new TSTransition<>(currentState, transition.getAction(), state));
-						}
+						ts.addAction(transition.getAction());
+						ts.addTransition(new TSTransition<>(currentState, transition.getAction(), state));
 					}
 				}
 			}
@@ -789,19 +785,13 @@ public class FvmFacade
 		{
 			Map<String, Object> eval = new HashMap<>();
 			for (String action : initList)
-			{
 				eval = ActionDef.effect(actionDefs, eval, action);
-			}
 			evals.add(eval);
 		}
 
-		for (Map<String, Object> eval : evals)
-		{
-			for (L initLoc : pg.getInitialLocations())
-			{
-				ts.addInitialState(new Pair<>(initLoc, eval));
-			}
-		}
+		evals.forEach(eval -> pg.getInitialLocations().stream()
+				.map(initLoc -> new Pair<>(initLoc, eval))
+				.forEach(ts::addInitialState));
 	}
 
 	/**
@@ -836,18 +826,12 @@ public class FvmFacade
 		Set<ConditionDef> setCondDefs = new HashSet<>();
 		setCondDefs.add(conditionDef);
 
-		List<Set<L>> initialLoc = new ArrayList<>();
-		for (ProgramGraph<L, A> pg : programGraphs)
-			initialLoc.add(pg.getInitialLocations());
-		List<List<L>> allInitialLoc = wrapperCreateAllPossibleLists(initialLoc);
-
-
-		List<Set<List<String>>> initializations = new ArrayList<>();
-		for (ProgramGraph<L, A> pg : programGraphs)
-			initializations.add(pg.getInitalizations());
 
 		List<List<String>> mixedInitializations = new ArrayList<>();
-		wrapperCreateAllPossibleLists(new ArrayList<>(initializations)).forEach(mixedInitializations::addAll);
+		wrapperCreateAllPossibleLists(new ArrayList<>(programGraphs.parallelStream()
+				.map(ProgramGraph::getInitalizations)
+				.collect(Collectors.toList())))
+				.forEach(mixedInitializations::addAll);
 		Set<Map<String, Object>> initials = new HashSet<>();
 		for (List<String> initialization : mixedInitializations)
 		{
@@ -860,9 +844,12 @@ public class FvmFacade
 			initials.add(new HashMap<>());
 
 		Set<Pair<List<L>, Map<String, Object>>> initStates = new HashSet<>();
-		for (List<L> location : allInitialLoc)
-			for (Map<String, Object> init : initials)
-				initStates.add(new Pair<>(location, init));
+		wrapperCreateAllPossibleLists(programGraphs.parallelStream()
+				.map(ProgramGraph::getInitialLocations)
+				.collect(Collectors.toList()))
+				.forEach(location -> initials.stream()
+						.map(init -> new Pair<>(location, init))
+						.forEach(initStates::add));
 
 		Queue<Pair<List<L>, Map<String, Object>>> currents = new LinkedList<>();
 		for (Pair<List<L>, Map<String, Object>> state : initStates)
@@ -885,24 +872,21 @@ public class FvmFacade
 
 				for (PGTransition<L, A> pgTransition : currentPg.getTransitions())
 				{
-					if (pgTransition.getFrom().equals(currentLocation))
+					if (pgTransition.getFrom().equals(currentLocation) &&
+							ConditionDef.evaluate(setCondDefs, currentNewLocation.getSecond(), pgTransition.getCondition()))
 					{
-						if (ConditionDef.evaluate(setCondDefs, currentNewLocation.second, pgTransition.getCondition()))
+						if (actionDef.isOneSidedAction(pgTransition.getAction().toString()))
 						{
-							A action = pgTransition.getAction();
-							if (actionDef.isOneSidedAction(action.toString()))
+							if (!oneSideActions.containsKey(i))
 							{
-								if (!oneSideActions.containsKey(i))
-								{
-									oneSideActions.put(i, new ArrayList<>());
-								}
-								oneSideActions.get(i).add(pgTransition);
-							} else
-							{
-								List<L> newLocation = new ArrayList<>(currentNewLocation.first);
-								newLocation.set(i, pgTransition.getTo());
-								addActAndTranToTSFromChanel(ts, setActDefs, currents, currentNewLocation, action, newLocation);
+								oneSideActions.put(i, new ArrayList<>());
 							}
+							oneSideActions.get(i).add(pgTransition);
+						} else
+						{
+							List<L> newLocation = new ArrayList<>(currentNewLocation.getFirst());
+							newLocation.set(i, pgTransition.getTo());
+							addActAndTranToTSFromChanel(ts, setActDefs, currents, currentNewLocation, pgTransition.getAction(), newLocation);
 						}
 					}
 				}
@@ -912,30 +896,27 @@ public class FvmFacade
 					for (Integer key : oneSideActions.keySet())
 					{
 						List<PGTransition<L, A>> transitions = oneSideActions.get(key);
-						Set<Pair<Integer, PGTransition<L, A>>> set = new HashSet<>();
-						for (PGTransition<L, A> transition : transitions)
-						{
-							set.add(new Pair<>(key, transition));
-						}
-						allComplexTransitions.add(set);
+						allComplexTransitions.add(transitions.parallelStream()
+								.map(transition -> new Pair<>(key, transition))
+								.collect(Collectors.toSet()));
 					}
 					List<List<Pair<Integer, PGTransition<L, A>>>> allComplexTransitionPermutations = wrapperCreateAllPossibleLists(allComplexTransitions);
-					for (List<Pair<Integer, PGTransition<L, A>>> complexTransition : allComplexTransitionPermutations)
+					allComplexTransitionPermutations.forEach(complexTransition ->
 					{
 						StringBuilder action = new StringBuilder();
-						List<L> newLocation = new ArrayList<>(currentNewLocation.first);
+						List<L> newLocation = new ArrayList<>(currentNewLocation.getFirst());
 						List<A> actions2 = new ArrayList<>();
-						for (Pair<Integer, PGTransition<L, A>> pair : complexTransition)
+						complexTransition.forEach(pair ->
 						{
 							if (action.length() != 0)
 								action.append("|");
-							action.append(pair.second.getAction());
-							actions2.add(pair.second.getAction());
-							newLocation.set(pair.first, pair.second.getTo());
-						}
+							action.append(pair.getSecond().getAction());
+							actions2.add(pair.getSecond().getAction());
+							newLocation.set(pair.getFirst(), pair.getSecond().getTo());
+						});
 						if (!actionDef.isOneSidedAction(actions2.toString()) && complexTransition.size() > 1)
 							addActAndTranToTSFromChanel(ts, complexActionDefSet, currents, currentNewLocation, (A) action.toString(), newLocation);
-					}
+					});
 				}
 			}
 		}
@@ -945,7 +926,7 @@ public class FvmFacade
 
 	private <L, A> void addActAndTranToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Set<ActionDef> setActDefs, Queue<Pair<List<L>, Map<String, Object>>> currents, Pair<List<L>, Map<String, Object>> state, A action, List<L> new_location)
 	{
-		Map<String, Object> newEval = ActionDef.effect(setActDefs, state.second, action);
+		Map<String, Object> newEval = ActionDef.effect(setActDefs, state.getSecond(), action);
 		if (newEval != null)
 		{
 			Pair<List<L>, Map<String, Object>> newState = new Pair<>(new_location, newEval);
@@ -963,14 +944,8 @@ public class FvmFacade
 
 	private <L, A> void addAPAndLabelToTSFromChanel(TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts, Pair<List<L>, Map<String, Object>> state)
 	{
-		for (L loc : state.first)
-		{
-			ts.addToLabel(state, loc.toString());
-		}
-		for (Map.Entry<String, Object> entry : state.second.entrySet())
-		{
-			ts.addToLabel(state, entry.getKey() + " = " + entry.getValue().toString());
-		}
+		state.getFirst().forEach(loc -> ts.addToLabel(state, loc.toString()));
+		state.getSecond().forEach((key, value) -> ts.addToLabel(state, key + " = " + value.toString()));
 	}
 
 	private <T> List<List<T>> wrapperCreateAllPossibleLists(List<Set<T>> items)
@@ -997,7 +972,7 @@ public class FvmFacade
 				List<T> currentList = new ArrayList<>(currList);
 				currentList.add(item);
 				createAllPossibleLists(items, ans, currentList, pos + 1);
-			}
+			};
 		}
 	}
 

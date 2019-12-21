@@ -109,17 +109,18 @@ public class Evaluator
 
 		if (context.chanwritestmt() != null)
 		{
-			HashMap<String, Object> neweval = new HashMap<String, Object>(eval)
+
+			return new HashMap<>(eval)
 			{
 				{
 
 					List<Integer> q = (List<Integer>) eval.get(context.chanwritestmt().CHANNAME().getText());
 					if (q == null)
 					{
-						q = new Vector<Integer>();
+						q = new Vector<>();
 					}
 
-					q = new Vector<Integer>(q)
+					q = new Vector<>(q)
 					{
 						{
 							add(evaluate(context.chanwritestmt().intexpr()));
@@ -130,14 +131,12 @@ public class Evaluator
 				}
 			};
 
-			return neweval;
-
 		}
 
 		// chanreadstmt : CHANNAME '?' VARNAME ;
 		if (context.chanreadstmt() != null)
 		{
-			HashMap<String, Object> neweval = new HashMap<String, Object>(eval);
+			HashMap<String, Object> neweval = new HashMap<>(eval);
 
 			List<Integer> q = (List<Integer>) eval.get(context.chanreadstmt().CHANNAME().getText());
 

@@ -56,8 +56,7 @@ public class ParserBasedActDef implements ActionDef
 		try
 		{
 			SpecContext spec = parser.spec();
-			StmtContext p = spec.stmt();
-			return p;
+			return spec.stmt();
 		} catch (RecognitionException ex)
 		{
 			return null;

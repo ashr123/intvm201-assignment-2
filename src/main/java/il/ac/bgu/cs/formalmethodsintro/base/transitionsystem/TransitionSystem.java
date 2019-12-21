@@ -270,9 +270,8 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	{
 		addState(s);
 		addAtomicProposition(l);
-		Set<ATOMIC_PROPOSITION> labelSet = labelingFunction.computeIfAbsent(s, k -> new HashSet<>());
 
-		labelSet.add(l);
+		labelingFunction.computeIfAbsent(s, k -> new HashSet<>()).add(l);
 	}
 
 	/**
@@ -374,74 +373,52 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 	@SuppressWarnings("unchecked")
 	public void addStates(STATE... states)
 	{
-		for (STATE s : states)
-		{
-			addState(s);
-		}
+		Arrays.stream(states).forEach(this::addState);
 	}
 
 	public void addAllStates(STATE[] states)
 	{
-		for (STATE s : states)
-			addState(s);
+		Arrays.stream(states).forEach(this::addState);
 	}
 
 	public void addAllStates(Iterable<STATE> states)
 	{
 		for (STATE s : states)
-		{
 			addState(s);
-		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public void addActions(ACTION... actions)
 	{
-		for (ACTION a : actions)
-		{
-			addAction(a);
-		}
+		Arrays.stream(actions).forEach(this::addAction);
 	}
 
 	public void addAllActions(ACTION[] actions)
 	{
-		for (ACTION a : actions)
-		{
-			addAction(a);
-		}
+		Arrays.stream(actions).forEach(this::addAction);
 	}
 
 	public void addAllActions(Iterable<ACTION> actions)
 	{
 		for (ACTION a : actions)
-		{
 			addAction(a);
-		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public void addAtomicPropositions(ATOMIC_PROPOSITION... aps)
 	{
-		for (ATOMIC_PROPOSITION ap : aps)
-		{
-			addAtomicProposition(ap);
-		}
+		Arrays.stream(aps).forEach(this::addAtomicProposition);
 	}
 
 	public void addAllAtomicPropositions(ATOMIC_PROPOSITION aps[])
 	{
-		for (ATOMIC_PROPOSITION ap : aps)
-		{
-			addAtomicProposition(ap);
-		}
+		Arrays.stream(aps).forEach(this::addAtomicProposition);
 	}
 
 	public void addAllAtomicPropositions(Iterable<ATOMIC_PROPOSITION> aps)
 	{
 		for (ATOMIC_PROPOSITION ap : aps)
-		{
 			addAtomicProposition(ap);
-		}
 	}
 
 	// / convenience methods
