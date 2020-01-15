@@ -698,7 +698,7 @@ public class FvmFacade
 			if (!reach.contains(state))
 				ts.removeState(state);
 
-		/***
+		/*
 		 * Adding all the labeling.
 		 */
 		for (Pair<L, Map<String, Object>> state : ts.getStates())
