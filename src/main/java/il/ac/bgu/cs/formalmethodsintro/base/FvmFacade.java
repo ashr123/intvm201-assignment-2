@@ -1129,29 +1129,31 @@ public class FvmFacade
 	{
 		throw new java.lang.UnsupportedOperationException();
 	}
- 
-    /**
-     * A translation of a Generalized Büchi Automaton (GNBA) to a
-     * Nondeterministic Büchi Automaton (NBA).
-     *
-     * @param <L> Type of resultant automaton transition alphabet
-     * @param mulAut An automaton with a set of accepting states (colors).
-     * @return An equivalent automaton with a single set of accepting states.
-     */
-    public <L> Automaton<?, L> GNBA2NBA(MultiColorAutomaton<?, L> mulAut) {
-        throw new java.lang.UnsupportedOperationException();
-    }
 
-    /**
-     * Translation of Linear Temporal Logic (LTL) formula to a Nondeterministic
-     * Büchi Automaton (NBA).
-     *
-     * @param <L> Type of resultant automaton transition alphabet
-     * @param ltl The LTL formula represented as a parse-tree.
-     * @return An automaton A such that L_\omega(A)=Words(ltl)
-     */
-    public <L> Automaton<?, L> LTL2NBA(LTL<L> ltl) {
-        throw new java.lang.UnsupportedOperationException();
-    }
+	/**
+	 * A translation of a Generalized Büchi Automaton (GNBA) to a
+	 * Nondeterministic Büchi Automaton (NBA).
+	 *
+	 * @param <L>    Type of resultant automaton transition alphabet
+	 * @param mulAut An automaton with a set of accepting states (colors).
+	 * @return An equivalent automaton with a single set of accepting states.
+	 */
+	public <L> Automaton<?, L> GNBA2NBA(MultiColorAutomaton<?, L> mulAut)
+	{
+		throw new java.lang.UnsupportedOperationException();
+	}
+
+	/**
+	 * Translation of Linear Temporal Logic (LTL) formula to a Nondeterministic
+	 * Büchi Automaton (NBA).
+	 *
+	 * @param <L> Type of resultant automaton transition alphabet
+	 * @param ltl The LTL formula represented as a parse-tree.
+	 * @return An automaton A such that L_\omega(A)=Words(ltl)
+	 */
+	public <L> Automaton<?, L> LTL2NBA(LTL<L> ltl)
+	{
+		throw new java.lang.UnsupportedOperationException();
+	}
 
 }
