@@ -4,7 +4,6 @@ import java.util.List;
 
 public class VerificationFailed<S> implements VerificationResult<S>
 {
-
 	List<S> prefix;
 	List<S> cycle;
 
@@ -31,21 +30,17 @@ public class VerificationFailed<S> implements VerificationResult<S>
 	@Override
 	public String toString()
 	{
-		String str = "\tPrefix:\n";
+		StringBuilder str = new StringBuilder("\tPrefix:\n");
 
 		for (S s : prefix)
-		{
-			str += "\t\t" + s + "\n";
-		}
+			str.append("\t\t").append(s).append("\n");
 
-		str += "\tCycle:\n";
+		str.append("\tCycle:\n");
 
 		for (S s : cycle)
-		{
-			str += "\t\t" + s + "\n";
-		}
+			str.append("\t\t").append(s).append("\n");
 
-		return str;
+		return str.toString();
 	}
 
 }

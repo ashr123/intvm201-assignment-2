@@ -17,10 +17,23 @@ import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TSTransition;
 import il.ac.bgu.cs.formalmethodsintro.base.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.formalmethodsintro.base.util.Pair;
 import il.ac.bgu.cs.formalmethodsintro.base.util.Util;
+import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationFailed;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
+import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationSucceeded;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1143,6 +1156,91 @@ public class FvmFacade
 	}
 
 	/**
+	 * inner DFS
+	 *
+	 * @param ts  The transition system.
+	 * @param s   initial state.
+	 * @param t   Set of visited states in the inner DFS.
+	 * @param v   Stack for the inner DFS.
+	 * @param <S> Type of states in the transition system.
+	 * @param <A> Type of actions in the transition system.
+	 * @param <Saut> Type of atomic propositions in the transition system.
+	 * @return {@code true} if {@code s} belongs to cycle
+	 */
+	private <S, A, Saut> boolean cycleCheck(TransitionSystem<Pair<S, Saut>, A, Saut> ts,
+	                                        Pair<S, Saut> s,
+	                                        Set<Pair<S, Saut>> t,
+	                                        Deque<Pair<S, Saut>> v)
+	{
+		boolean cycleFound = false; // no cycle found yet
+		v.push(s); // push s on the stack
+		do
+		{
+			final Set<Pair<S, Saut>> postSTag = post(ts, v.peek() /* take top element of V */);
+			if (postSTag.contains(s))
+				cycleFound = true; // if s∈Post(s'), a cycle is found.
+			else
+			{
+				final HashSet<Pair<S, Saut>> postSTagWithoutT = new HashSet<>(postSTag);
+				postSTagWithoutT.removeAll(t);
+				if (!postSTagWithoutT.isEmpty())
+					v.push(postSTagWithoutT.stream().findFirst().get()); //push an unvisited successor of s'
+				else
+					v.pop(); // unsuccessful cycle search for s'
+			}
+		}
+		while (!(v.isEmpty() || cycleFound));
+		return cycleFound;
+	}
+
+	/**
+	 * outer DFS
+	 *
+	 * @param ts  The transition system.
+	 * @param s   initial state.
+	 * @param r   Set of visited states in the outer DFS.
+	 * @param u   Stack for the outer DFS.
+	 * @param t   Set of visited states in the inner DFS.
+	 * @param v   Stack for the inner DFS.
+	 * @param <S> Type of states in the transition system.
+	 * @param <A> Type of actions in the transition system.
+	 * @param <Saut> Type of atomic propositions in the transition system.
+	 * @return {@code true} if {@code s} belongs to cycle
+	 */
+	private <S, A, Saut> boolean reachableCycle(TransitionSystem<Pair<S, Saut>, A, Saut> ts,
+	                                            Automaton<Saut, ?> aut,
+	                                            Pair<S, Saut> s,
+	                                            Set<Pair<S, Saut>> r,
+	                                            Deque<Pair<S, Saut>> u,
+	                                            Set<Pair<S, Saut>> t,
+	                                            Deque<Pair<S, Saut>> v)
+	{
+		boolean cycleFound = false;
+		u.push(s); // push s on the stack
+		r.add(s);
+		do
+		{
+			final Pair<S, Saut> sTag = u.peek();
+			final Set<Pair<S, Saut>> postSTagWithoutR = post(ts, sTag);
+			postSTagWithoutR.removeAll(r);
+			if (!postSTagWithoutR.isEmpty())
+			{
+				final Pair<S, Saut> sTagTag = postSTagWithoutR.stream().findFirst().get();
+				u.push(sTagTag);
+				r.add(sTagTag);
+			}
+			else
+			{
+				u.pop();
+				if (!aut.getAcceptingStates().contains(sTag.getSecond()))
+					cycleFound = cycleCheck(ts, sTag, t, v);
+			}
+
+		} while (!(u.isEmpty() || cycleFound));
+		return cycleFound;
+	}
+
+	/**
 	 * Verify that a system satisfies an omega regular property.
 	 *
 	 * @param <S>    Type of states in the transition system.
@@ -1159,7 +1257,33 @@ public class FvmFacade
 	public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts,
 	                                                                          Automaton<Saut, P> aut)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		final Set<Pair<S, Saut>> r = new HashSet<>(), t = new HashSet<>();
+		final Deque<Pair<S, Saut>> u = new LinkedList<>(), v = new LinkedList<>();
+		boolean cycleFound = false;
+
+		final TransitionSystem<Pair<S, Saut>, A, Saut> ts_x = product(ts, aut);
+//		final Set<Pair<S, Saut>> reachableStates = reach(ts_x);
+
+		HashSet<Pair<S, Saut>> initialsWithoutR = new HashSet<>(ts_x.getInitialStates());
+		for (; !initialsWithoutR.isEmpty() && !cycleFound; initialsWithoutR.removeAll(r))
+			cycleFound = reachableCycle(ts_x, aut, initialsWithoutR.stream().findFirst().get(), r, u, t, v);
+
+		if (!cycleFound)
+			return new VerificationSucceeded<>();
+		final VerificationFailed<S> failure = new VerificationFailed<>();
+
+		final List<S> reverseList = new LinkedList<>();
+		v.descendingIterator().forEachRemaining(s -> reverseList.add(s.getFirst()));
+		failure.setCycle(reverseList);
+
+		final List<S> reverseList2 = new LinkedList<>();
+		u.descendingIterator().forEachRemaining(s -> reverseList2.add(s.getFirst()));
+		failure.setPrefix(reverseList2);
+		return failure;
+
+
+
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**
