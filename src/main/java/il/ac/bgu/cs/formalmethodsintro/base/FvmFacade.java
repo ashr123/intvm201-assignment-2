@@ -22,18 +22,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationResult;
 import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationSucceeded;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1158,12 +1147,12 @@ public class FvmFacade
 	/**
 	 * inner DFS
 	 *
-	 * @param ts  The transition system.
-	 * @param s   initial state.
-	 * @param t   Set of visited states in the inner DFS.
-	 * @param v   Stack for the inner DFS.
-	 * @param <S> Type of states in the transition system.
-	 * @param <A> Type of actions in the transition system.
+	 * @param ts     The transition system.
+	 * @param s      initial state.
+	 * @param t      Set of visited states in the inner DFS.
+	 * @param v      Stack for the inner DFS.
+	 * @param <S>    Type of states in the transition system.
+	 * @param <A>    Type of actions in the transition system.
 	 * @param <Saut> Type of atomic propositions in the transition system.
 	 * @return {@code true} if {@code s} belongs to cycle
 	 */
@@ -1196,14 +1185,15 @@ public class FvmFacade
 	/**
 	 * outer DFS
 	 *
-	 * @param ts  The transition system.
-	 * @param s   initial state.
-	 * @param r   Set of visited states in the outer DFS.
-	 * @param u   Stack for the outer DFS.
-	 * @param t   Set of visited states in the inner DFS.
-	 * @param v   Stack for the inner DFS.
-	 * @param <S> Type of states in the transition system.
-	 * @param <A> Type of actions in the transition system.
+	 * @param ts     The transition system.
+	 * @param aut    A Büchi automaton for the words that do not satisfy the property.
+	 * @param s      initial state.
+	 * @param r      Set of visited states in the outer DFS.
+	 * @param u      Stack for the outer DFS.
+	 * @param t      Set of visited states in the inner DFS.
+	 * @param v      Stack for the inner DFS.
+	 * @param <S>    Type of states in the transition system.
+	 * @param <A>    Type of actions in the transition system.
 	 * @param <Saut> Type of atomic propositions in the transition system.
 	 * @return {@code true} if {@code s} belongs to cycle
 	 */
@@ -1228,8 +1218,7 @@ public class FvmFacade
 				final Pair<S, Saut> sTagTag = postSTagWithoutR.stream().findFirst().get();
 				u.push(sTagTag); // push the unvisited successor of s'
 				r.add(sTagTag); // and mark it reachable
-			}
-			else
+			} else
 			{
 				u.pop(); // outer DFS finished for s'
 				if (!aut.getAcceptingStates().contains(sTag.getSecond())) // TODO check
@@ -1262,27 +1251,24 @@ public class FvmFacade
 		boolean cycleFound = false;
 
 		final TransitionSystem<Pair<S, Saut>, A, Saut> ts_x = product(ts, aut);
-//		final Set<Pair<S, Saut>> reachableStates = reach(ts_x);
 
-		HashSet<Pair<S, Saut>> initialsWithoutR = new HashSet<>(ts_x.getInitialStates());
+		final HashSet<Pair<S, Saut>> initialsWithoutR = new HashSet<>(ts_x.getInitialStates());
 		for (; !initialsWithoutR.isEmpty() && !cycleFound; initialsWithoutR.removeAll(r))
 			cycleFound = reachableCycle(ts_x, aut, initialsWithoutR.stream().findFirst().get() /* explore the reachable */, r, u, t, v); // fragment with outer DFS
 
 		if (!cycleFound)
 			return new VerificationSucceeded<>(); // TS⊨"eventually forever/always 𝛷"≡◇□𝛷
+
 		final VerificationFailed<S> failure = new VerificationFailed<>();
 
-		final List<S> reverseList = new LinkedList<>();
-		v.descendingIterator().forEachRemaining(s -> reverseList.add(s.getFirst()));
-		failure.setCycle(reverseList);
+		final List<S> reverseListV = new LinkedList<>();
+		v.descendingIterator().forEachRemaining(pair -> reverseListV.add(pair.getFirst()));
+		failure.setCycle(reverseListV);
 
-		final List<S> reverseList2 = new LinkedList<>();
-		u.descendingIterator().forEachRemaining(s -> reverseList2.add(s.getFirst()));
-		failure.setPrefix(reverseList2);
+		final List<S> reverseListU = new LinkedList<>();
+		u.descendingIterator().forEachRemaining(pair -> reverseListU.add(pair.getFirst()));
+		failure.setPrefix(reverseListU);
 		return failure; // stack contents yield a counterexample
-
-
-
 //		throw new java.lang.UnsupportedOperationException();
 	}
 
