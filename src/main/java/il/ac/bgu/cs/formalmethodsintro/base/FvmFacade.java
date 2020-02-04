@@ -1226,17 +1226,17 @@ public class FvmFacade
 			if (!postSTagWithoutR.isEmpty())
 			{
 				final Pair<S, Saut> sTagTag = postSTagWithoutR.stream().findFirst().get();
-				u.push(sTagTag);
-				r.add(sTagTag);
+				u.push(sTagTag); // push the unvisited successor of s'
+				r.add(sTagTag); // and mark it reachable
 			}
 			else
 			{
-				u.pop();
-				if (!aut.getAcceptingStates().contains(sTag.getSecond()))
-					cycleFound = cycleCheck(ts, sTag, t, v);
+				u.pop(); // outer DFS finished for s'
+				if (!aut.getAcceptingStates().contains(sTag.getSecond())) // TODO check
+					cycleFound = cycleCheck(ts, sTag, t, v); // proceed with the inner DFS in state s'
 			}
 
-		} while (!(u.isEmpty() || cycleFound));
+		} while (!(u.isEmpty() || cycleFound)); // stop when stack for the outer DFS is empty or cycle found
 		return cycleFound;
 	}
 
@@ -1266,10 +1266,10 @@ public class FvmFacade
 
 		HashSet<Pair<S, Saut>> initialsWithoutR = new HashSet<>(ts_x.getInitialStates());
 		for (; !initialsWithoutR.isEmpty() && !cycleFound; initialsWithoutR.removeAll(r))
-			cycleFound = reachableCycle(ts_x, aut, initialsWithoutR.stream().findFirst().get(), r, u, t, v);
+			cycleFound = reachableCycle(ts_x, aut, initialsWithoutR.stream().findFirst().get() /* explore the reachable */, r, u, t, v); // fragment with outer DFS
 
 		if (!cycleFound)
-			return new VerificationSucceeded<>();
+			return new VerificationSucceeded<>(); // TS⊨"eventually forever/always 𝛷"≡◇□𝛷
 		final VerificationFailed<S> failure = new VerificationFailed<>();
 
 		final List<S> reverseList = new LinkedList<>();
@@ -1279,7 +1279,7 @@ public class FvmFacade
 		final List<S> reverseList2 = new LinkedList<>();
 		u.descendingIterator().forEachRemaining(s -> reverseList2.add(s.getFirst()));
 		failure.setPrefix(reverseList2);
-		return failure;
+		return failure; // stack contents yield a counterexample
 
 
 
