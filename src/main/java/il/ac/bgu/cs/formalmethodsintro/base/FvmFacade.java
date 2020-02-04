@@ -1110,7 +1110,36 @@ public class FvmFacade
 	public <Sts, Saut, A, P> TransitionSystem<Pair<Sts, Saut>, A, Saut> product(TransitionSystem<Sts, A, P> ts,
 	                                                                            Automaton<Saut, P> aut)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		final TransitionSystem<Pair<Sts, Saut>, A, Saut> transitionSystem = new TransitionSystem<>();
+		final Set<Saut> qs = aut.getTransitions().keySet();
+
+		transitionSystem.addAllActions(ts.getActions()); // Actₓ=Act_TS
+		transitionSystem.addAllAtomicPropositions(qs); // APₓ=Q
+		ts.getStates()
+				.forEach(s -> qs.stream()
+						.map(q -> new Pair<>(s, q))
+						.forEach(pair ->
+						{
+							transitionSystem.addState(pair); // Sₓ=S_TS×Q
+							transitionSystem.addToLabel(pair, pair.getSecond()); // Lₓ(⟨s, q⟩)={q}
+							if (ts.getInitialStates().contains(pair.getFirst())) // pair.getFirst() is s₀
+								aut.getInitialStates() // Q₀
+										.forEach(q_0 ->
+										{
+											if (aut.nextStates(q_0, ts.getLabel(pair.getFirst())).contains(pair.getSecond())) //  ∃q₀∈Q₀.q∈𝛿(q₀, L(s₀)), pair.getSecond() is q
+												transitionSystem.addInitialState(pair); // ⟨s₀, q⟩
+										}); // Iₓ={⟨s₀, q⟩:s₀∈I_TS∧∃q₀∈Q₀.q∈𝛿(q₀, L(s₀))}
+						}));
+
+		// →ₓ
+		ts.getTransitions()
+				.forEach(transition -> qs
+						.forEach(q -> aut.nextStates(q, ts.getLabel(transition.getTo()))
+								.forEach(p -> transitionSystem.addTransition(new TSTransition<>(new Pair<>(transition.getFrom(), q), transition.getAction(), new Pair<>(transition.getTo(), p))))));
+
+		transitionSystem.setName("TSₓ=TS×A");
+		return transitionSystem;
+//		throw new java.lang.UnsupportedOperationException();
 	}
 
 	/**

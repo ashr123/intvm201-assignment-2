@@ -62,12 +62,9 @@ public class MultiColorAutomaton<State, L>
 	public Set<State> nextStates(State source, Set<L> symbol)
 	{
 		if (!transitions.containsKey(source))
-		{
 			throw new IllegalArgumentException();
-		} else
-		{
+		else
 			return transitions.get(source).get(symbol);
-		}
 	}
 
 	public void setAccepting(State s, int color)

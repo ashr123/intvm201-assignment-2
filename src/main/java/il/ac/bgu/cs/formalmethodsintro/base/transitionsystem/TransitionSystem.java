@@ -247,10 +247,11 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 		labelingFunction.values().parallelStream()
 				.flatMap(Collection::stream)
 				.filter(ap -> ap.equals(p))
-				.findFirst().ifPresent(ap ->
-		{
-			throw new DeletionOfAttachedAtomicPropositionException(p, TransitionSystemPart.LABELING_FUNCTION);
-		});
+				.findFirst()
+				.ifPresent(ap ->
+				{
+					throw new DeletionOfAttachedAtomicPropositionException(p, TransitionSystemPart.LABELING_FUNCTION);
+				});
 
 		atomicPropositions.remove(p);
 	}
@@ -396,8 +397,9 @@ public class TransitionSystem<STATE, ACTION, ATOMIC_PROPOSITION>
 
 	public void addAllActions(Iterable<ACTION> actions)
 	{
-		for (ACTION a : actions)
-			addAction(a);
+		actions.forEach(this::addAction);
+//		for (ACTION a : actions)
+//			addAction(a);
 	}
 
 	@SuppressWarnings("unchecked")
