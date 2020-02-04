@@ -1,15 +1,14 @@
 package il.ac.bgu.cs.formalmethodsintro.base.util;
 
+import il.ac.bgu.cs.formalmethodsintro.base.automata.Automaton;
+import il.ac.bgu.cs.formalmethodsintro.base.automata.MultiColorAutomaton;
+import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import il.ac.bgu.cs.formalmethodsintro.base.automata.Automaton;
-import il.ac.bgu.cs.formalmethodsintro.base.automata.MultiColorAutomaton;
-import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
 
 /**
  * Utility methods for implementation.
@@ -29,13 +28,12 @@ public class Util
 	{
 		List<T> orderedItems = new ArrayList<>(aset);
 
-		Stream<Set<T>> stream = IntStream.range(0, (int) Math.pow(2, aset.size())).parallel().mapToObj(e ->
-		{
-			IntStream range2 = IntStream.range(0, orderedItems.size());
-			return range2.filter(i -> (e & (0b1 << i)) != 0).mapToObj(orderedItems::get).collect(Collectors.toSet());
-		});
-
-		return stream.collect(Collectors.toSet());
+		return IntStream.range(0, 1 << aset.size() /*(int) Math.pow(2, aset.size())*/).parallel()
+				.mapToObj(e -> IntStream.range(0, orderedItems.size())
+						.filter(i -> (e & (0b1 << i)) != 0)
+						.mapToObj(orderedItems::get)
+						.collect(Collectors.toSet()))
+				.collect(Collectors.toSet());
 	}
 
 	/**
@@ -43,9 +41,9 @@ public class Util
 	 */
 	public static <L> void printColoredAutomatonTransitions(MultiColorAutomaton<Set<LTL<L>>, L> gnba)
 	{
-		gnba.getTransitions().entrySet().stream()
-				.forEach((s1) -> s1.getValue().entrySet().stream().forEach(s2 -> s2.getValue().stream()
-						.forEach(s3 -> System.out.println(s1.getKey() + "----" + s2.getKey() + "---->" + s3))));
+		gnba.getTransitions().forEach((key1, value1) ->
+				value1.forEach((key, value) ->
+						value.forEach(s3 -> System.out.println(key1 + "----" + key + "---->" + s3))));
 	}
 
 	/**
@@ -53,9 +51,9 @@ public class Util
 	 */
 	public static <S, L> void printAutomatonTransitions(Automaton<S, L> nba)
 	{
-		nba.getTransitions().entrySet().stream()
-				.forEach((s1) -> s1.getValue().entrySet().stream().forEach(s2 -> s2.getValue().stream()
-						.forEach(s3 -> System.out.println(s1.getKey() + "----" + s2.getKey() + "---->" + s3))));
+		nba.getTransitions().forEach((key, value) ->
+				value.forEach((key1, value1) ->
+						value1.forEach(s3 -> System.out.println(key + "----" + key1 + "---->" + s3))));
 	}
 
 }

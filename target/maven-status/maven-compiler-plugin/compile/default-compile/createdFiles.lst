@@ -51,6 +51,7 @@ il/ac/bgu/cs/formalmethodsintro/base/nanopromela/NanoPromelaParser$StmtContext.c
 il/ac/bgu/cs/formalmethodsintro/base/util/Util.class
 il/ac/bgu/cs/formalmethodsintro/base/automata/Automaton.class
 il/ac/bgu/cs/formalmethodsintro/base/channelsystem/InterleavingActDef.class
+il/ac/bgu/cs/formalmethodsintro/base/fairness/FairnessCondition.class
 il/ac/bgu/cs/formalmethodsintro/base/nanopromela/NanoPromelaParser$OptionContext.class
 il/ac/bgu/cs/formalmethodsintro/base/programgraph/ThrowingErrorListener.class
 il/ac/bgu/cs/formalmethodsintro/base/verification/VerificationResult.class

@@ -7,6 +7,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.channelsystem.ParserBasedInterleavin
 import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.ActionNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
+import il.ac.bgu.cs.formalmethodsintro.base.fairness.FairnessCondition;
 import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
 import il.ac.bgu.cs.formalmethodsintro.base.nanopromela.NanoPromelaFileReader;
 import il.ac.bgu.cs.formalmethodsintro.base.nanopromela.NanoPromelaParser;
@@ -630,15 +631,15 @@ public class FvmFacade
 
 		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts = new TransitionSystem<>();
 
-		/***
-		 * Adding all the actions.
+		/*
+		  Adding all the actions.
 		 */
 		for (PGTransition<L, A> transition : pg.getTransitions())
 			if (!transition.getAction().equals(""))
 				ts.addAction(transition.getAction());
 
-		/***
-		 * Adding all the locations.
+		/*
+		  Adding all the locations.
 		 */
 		Set<Map<String, Object>> evals = new HashSet<>();
 		for (List<String> actions : pg.getInitalizations())
@@ -651,8 +652,8 @@ public class FvmFacade
 		if (evals.isEmpty())
 			evals.add(new HashMap<>());
 
-		/***
-		 * Adding all the atomic propositions.
+		/*
+		 Adding all the atomic propositions.
 		 */
 		for (L initLoc : pg.getInitialLocations())
 		{
@@ -665,7 +666,7 @@ public class FvmFacade
 			}
 		}
 
-		/***
+		/*
 		 * Adding all the transitions.
 		 */
 		Queue<Pair<L, Map<String, Object>>> states = new LinkedList<>(ts.getStates());
@@ -894,6 +895,7 @@ public class FvmFacade
 			String pgChannel = ((String) pgAction).substring(0, ((String) pgAction).indexOf("?"));
 			String pgiChannel = ((String) pgiAction).substring(0, ((String) pgiAction).indexOf("!"));
 			if (pgChannel.equals(pgiChannel))
+				//noinspection unchecked
 				return (A) String.format("%s|%s", pgAction, pgiAction);
 		}
 
@@ -902,6 +904,7 @@ public class FvmFacade
 			String pgChannel = ((String) pgAction).substring(0, ((String) pgAction).indexOf("!"));
 			String pgiChannel = ((String) pgiAction).substring(0, ((String) pgiAction).indexOf("?"));
 			if (pgChannel.equals(pgiChannel))
+				//noinspection unchecked
 				return (A) String.format("%s|%s", pgAction, pgiAction);
 		}
 
@@ -1156,4 +1159,19 @@ public class FvmFacade
 		throw new java.lang.UnsupportedOperationException();
 	}
 
+	/**
+	 * Verify that a system satisfies an LTL formula under fairness conditions.
+	 *
+	 * @param ts  Transition system
+	 * @param fc  Fairness condition
+	 * @param ltl An LTL formula
+	 * @param <S> Type of states in the transition system
+	 * @param <A> Type of actions in the transition system
+	 * @param <P> Type of atomic propositions in the transition system
+	 * @return a VerificationSucceeded object or a VerificationFailed object with a counterexample.
+	 */
+	public <S, A, P> VerificationResult<S> verifyFairLTLFormula(TransitionSystem<S, A, P> ts, FairnessCondition<A> fc, LTL<P> ltl)
+	{
+		throw new java.lang.UnsupportedOperationException();
+	}
 }
