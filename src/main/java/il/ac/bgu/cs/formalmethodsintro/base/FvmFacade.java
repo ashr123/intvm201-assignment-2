@@ -23,10 +23,10 @@ import il.ac.bgu.cs.formalmethodsintro.base.verification.VerificationSucceeded;
 
 import java.io.InputStream;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Interface for the entry point class to the HW in this class. Our
@@ -1136,8 +1136,8 @@ public class FvmFacade
 
 		// →ₓ
 		ts.getTransitions()
-				.forEach(transition -> qs
-						.forEach(q -> aut.nextStates(q, ts.getLabel(transition.getTo()))
+				.forEach(transition ->
+						qs.forEach(q -> aut.nextStates(q, ts.getLabel(transition.getTo()))
 								.forEach(p -> transitionSystem.addTransition(new TSTransition<>(new Pair<>(transition.getFrom(), q), transition.getAction(), new Pair<>(transition.getTo(), p))))));
 
 		transitionSystem.setName("TSₓ=TS_" + ts.getName() + "×A");
@@ -1222,7 +1222,7 @@ public class FvmFacade
 			} else
 			{
 				u.pop(); // outer DFS finished for s'
-				if (!aut.getAcceptingStates().contains(sTag.getSecond())) // s'⊭𝛷 TODO check
+				if (!aut.getAcceptingStates().contains(sTag.getSecond())) // s'⊭𝛷 TODO check (shouldn't because u.push(s) at the beginning)
 					cycleFound = cycleCheck(ts, sTag, t, v); // proceed with the inner DFS in state s'
 			}
 
@@ -1328,31 +1328,27 @@ public class FvmFacade
 //		}
 		else
 		{
-			final Integer color = colors.stream().findFirst().get();
+			final Integer[] colorsByOrder = colors.toArray(new Integer[0]);
 
 			mulAut.getInitialStates()
-					.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
+					.forEach(state -> automaton.setInitial(new Pair<>(state, colorsByOrder[0])));
 
-			mulAut.getAcceptingStates(color)
-					.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
+			mulAut.getAcceptingStates(colorsByOrder[0])
+					.forEach(state -> automaton.setAccepting(new Pair<>(state, colorsByOrder[0])));
 
-			final Integer[] colorsByOrder = new Integer[colors.size()];
-			final AtomicInteger i = new AtomicInteger();
-			colors.forEach(color1 ->
+
+			Stream.of(colorsByOrder)
+					.forEach(color -> mulAut.getTransitions()
+							.forEach((source, lsStatesMap) ->
+									lsStatesMap.forEach((ls, states) ->
+									{
+										if (!mulAut.getAcceptingStates(color).contains(source))
+											states.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)));
+									})));
+
+			for (int i = 0; i < colors.size(); i++)
 			{
-				colorsByOrder[i.getAndIncrement()] = color1;
-				mulAut.getTransitions()
-						.forEach((source, lsStatesMap) ->
-								lsStatesMap.forEach((ls, states) ->
-								{
-									if (!mulAut.getAcceptingStates(color1).contains(source))
-										states.forEach(destination -> automaton.addTransition(new Pair<>(source, color1), ls, new Pair<>(destination, color1)));
-								}));
-			});
-
-			for (int i1 = 0; i1 < colors.size(); i1++)
-			{
-				final int finalI = i1;
+				final int finalI = i;
 				mulAut.getTransitions()
 						.forEach((source, lsStatesMap) ->
 								lsStatesMap.forEach((ls, states) ->
