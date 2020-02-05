@@ -1131,7 +1131,7 @@ public class FvmFacade
 										{
 											if (aut.nextStates(q_0, ts.getLabel(pair.getFirst())).contains(pair.getSecond())) //  ∃q₀∈Q₀.q∈𝛿(q₀, L(s₀)), pair.getSecond() is q
 												transitionSystem.addInitialState(pair); // ⟨s₀, q⟩
-										}); // Iₓ={⟨s₀, q⟩:s₀∈I_TS∧∃q₀∈Q₀.q∈𝛿(q₀, L(s₀))}
+										}); // Iₓ = {⟨s₀, q⟩: s₀∈I_TS ∧ ∃q₀∈Q₀ . q∈𝛿(q₀, L(s₀))}
 						}));
 
 		// →ₓ
@@ -1140,7 +1140,7 @@ public class FvmFacade
 						.forEach(q -> aut.nextStates(q, ts.getLabel(transition.getTo()))
 								.forEach(p -> transitionSystem.addTransition(new TSTransition<>(new Pair<>(transition.getFrom(), q), transition.getAction(), new Pair<>(transition.getTo(), p))))));
 
-		transitionSystem.setName("TSₓ=TS×A");
+		transitionSystem.setName("TSₓ=TS_" + ts.getName() + "×A");
 		return transitionSystem;
 //		throw new java.lang.UnsupportedOperationException();
 	}
@@ -1295,17 +1295,17 @@ public class FvmFacade
 		if (colors.isEmpty()) // edge case
 		{
 			mulAut.getInitialStates()
-					.forEach(state -> automaton.setInitial(new Pair<>(state, 0)));
+					.forEach(state -> automaton.setInitial(new Pair<>(state, null)));
 
 			mulAut.getTransitions()
 					.forEach((source, setSetMap) ->
 					{
-						final Pair<?, Integer> sourcePair = new Pair<>(source, 0);
+						final Pair<?, Integer> sourcePair = new Pair<>(source, null);
 						automaton.setAccepting(sourcePair);
 						setSetMap.forEach((ls, states) ->
 								states.forEach(destination ->
 								{
-									final Pair<?, Integer> destinationPair = new Pair<>(destination, 0);
+									final Pair<?, Integer> destinationPair = new Pair<>(destination, null);
 									automaton.addTransition(sourcePair, ls, destinationPair);
 									automaton.setAccepting(destinationPair);
 								}));
@@ -1358,7 +1358,7 @@ public class FvmFacade
 								lsStatesMap.forEach((ls, states) ->
 								{
 									if (mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source))
-										states.forEach(destination -> automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[(finalI + 1) % colors.size()] /* should be the next color, and if is the last, should be the first color */)));
+										states.forEach(destination -> automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[(finalI + 1) % colors.size()])));
 								}));
 			}
 		}

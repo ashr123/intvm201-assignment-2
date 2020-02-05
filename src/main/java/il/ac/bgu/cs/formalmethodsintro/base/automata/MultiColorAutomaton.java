@@ -8,7 +8,6 @@ import java.util.Set;
 
 public class MultiColorAutomaton<State, L>
 {
-
 	private final Set<State> initial;
 	private final Map<Integer, Set<State>> accepting;
 	private final Map<State, Map<Set<L>, Set<State>>> transitions;
@@ -23,9 +22,7 @@ public class MultiColorAutomaton<State, L>
 	public void addState(State s)
 	{
 		if (!transitions.containsKey(s))
-		{
 			transitions.put(s, new HashMap<>());
-		}
 	}
 
 	public void addTransition(State source, Set<L> symbol, State destination)
@@ -41,7 +38,6 @@ public class MultiColorAutomaton<State, L>
 
 	public Set<State> getAcceptingStates(int color)
 	{
-
 		return accepting.computeIfAbsent(color, k -> new HashSet<>());
 	}
 
@@ -59,13 +55,11 @@ public class MultiColorAutomaton<State, L>
 	{
 		if (!transitions.containsKey(source))
 			throw new IllegalArgumentException();
-		else
-			return transitions.get(source).get(symbol);
+		return transitions.get(source).get(symbol);
 	}
 
 	public void setAccepting(State s, int color)
 	{
-
 		addState(s);
 		accepting.computeIfAbsent(color, k -> new HashSet<>()).add(s);
 	}

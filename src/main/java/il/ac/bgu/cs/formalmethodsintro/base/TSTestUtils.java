@@ -96,11 +96,11 @@ public class TSTestUtils
 	 * |   |
 	 * |   V   alpha
 	 * +---a<--------->b
-	 * |
-	 * beta|
-	 * |     * Initial state: a
-	 * V
-	 * c
+	 *     |
+	 *     | beta
+	 *     |     * Initial state: a
+	 *     V
+	 *     c
 	 * }
 	 *
 	 * @return
@@ -228,17 +228,17 @@ public class TSTestUtils
 		return retVal;
 	}
 
-	public static enum Actions
+	public enum Actions
 	{
 		alpha, beta, gamma, delta, epsilon, zeta, eta, theta
 	}
 
-	public static enum States
+	public enum States
 	{
 		a, b, c, d, e, f, g
 	}
 
-	public static enum APs
+	public enum APs
 	{
 		P, Q, R, S
 	}
