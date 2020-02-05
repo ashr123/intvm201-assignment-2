@@ -34,7 +34,6 @@ import org.svvrl.goal.core.io.OldGFFCodec;
  */
 public class Automaton<State, Sigma> extends MultiColorAutomaton<State, Sigma>
 {
-
 	public void setAccepting(State s)
 	{
 		super.setAccepting(s, 0);
@@ -45,7 +44,7 @@ public class Automaton<State, Sigma> extends MultiColorAutomaton<State, Sigma>
 		return super.getAcceptingStates(0);
 	}
 
-	public boolean isEquivalentTo(Automaton<?, Sigma> other) throws EvaluationException, Exception
+	public boolean isEquivalentTo(Automaton<?, Sigma> other) throws Exception
 	{
 		AutomatonIO.write(other, "other.gff");
 		AutomatonIO.write(this, "this.gff");

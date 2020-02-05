@@ -31,14 +31,10 @@ public class MultiColorAutomaton<State, L>
 	public void addTransition(State source, Set<L> symbol, State destination)
 	{
 		if (!transitions.containsKey(source))
-		{
 			addState(source);
-		}
 
 		if (!transitions.containsKey(destination))
-		{
 			addState(destination);
-		}
 
 		transitions.get(source).computeIfAbsent(symbol, k -> new HashSet<>()).add(destination);
 	}
