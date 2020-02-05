@@ -1291,7 +1291,6 @@ public class FvmFacade
 	{
 		final Automaton<Pair<?, Integer>, L> automaton = new Automaton<>();
 		final Set<Integer> colors = mulAut.getColors();
-		Integer color;
 
 		if (colors.isEmpty()) // edge case
 		{
@@ -1329,7 +1328,7 @@ public class FvmFacade
 //		}
 		else
 		{
-			color = colors.stream().findFirst().get();
+			final Integer color = colors.stream().findFirst().get();
 
 			mulAut.getInitialStates()
 					.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
