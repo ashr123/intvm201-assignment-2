@@ -1287,80 +1287,81 @@ public class FvmFacade
 	 * @param mulAut An automaton with a set of accepting states (colors).
 	 * @return An equivalent automaton with a single set of accepting states.
 	 */
-	// changed to "State" instead of "?" cause it wasn't possible to create the new automaton
-	public <State, L> Automaton<Pair<State, Integer>, L> GNBA2NBA(MultiColorAutomaton<State, L> mulAut)
+	public <L> Automaton<?, L> GNBA2NBA(MultiColorAutomaton<?, L> mulAut)
 	{
-		final Automaton<Pair<State, Integer>, L> automaton = new Automaton<>();
+		final Automaton<Pair<?, Integer>, L> automaton = new Automaton<>();
+		final Set<Integer> colors = mulAut.getColors();
 		Integer color;
 
-		final Set<Integer> colors = mulAut.getColors();
-		switch (colors.size())
+		if (colors.isEmpty()) // edge case
 		{
-			case 0: // edge case
-				mulAut.getInitialStates()
-						.forEach(state -> automaton.setInitial(new Pair<>(state, 0)));
+			mulAut.getInitialStates()
+					.forEach(state -> automaton.setInitial(new Pair<>(state, 0)));
 
-				mulAut.getTransitions().forEach((source, setSetMap) ->
-				{
-					final Pair<State, Integer> sourcePair = new Pair<>(source, 0);
-					automaton.setAccepting(sourcePair);
-					setSetMap.forEach((ls, states) ->
-							states.forEach(destination ->
-							{
-								final Pair<State, Integer> destinationPair = new Pair<>(source, 0);
-								automaton.addTransition(sourcePair, ls, destinationPair);
-								automaton.setAccepting(destinationPair);
-							}));
-				});
-				break;
-			case 1:
-				color = colors.stream().findFirst().get();
+			mulAut.getTransitions()
+					.forEach((source, setSetMap) ->
+					{
+						final Pair<?, Integer> sourcePair = new Pair<>(source, 0);
+						automaton.setAccepting(sourcePair);
+						setSetMap.forEach((ls, states) ->
+								states.forEach(destination ->
+								{
+									final Pair<?, Integer> destinationPair = new Pair<>(destination, 0);
+									automaton.addTransition(sourcePair, ls, destinationPair);
+									automaton.setAccepting(destinationPair);
+								}));
+					});
+		}
+//		else if (colors.size() == 1) // maybe case 1 ⊂ default?
+//		{
+//			color = colors.stream().findFirst().get();
+//
+//			mulAut.getInitialStates()
+//					.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
+//
+//			mulAut.getAcceptingStates(color)
+//					.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
+//
+//			mulAut.getTransitions()
+//					.forEach((source, setSetMap) -> setSetMap
+//							.forEach((ls, states) -> states
+//									.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)))));
+//		}
+		else
+		{
+			color = colors.stream().findFirst().get();
 
-				mulAut.getInitialStates()
-						.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
+			mulAut.getInitialStates()
+					.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
 
-				mulAut.getAcceptingStates(color)
-						.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
+			mulAut.getAcceptingStates(color)
+					.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
 
+			final Integer[] colorsByOrder = new Integer[colors.size()];
+			final AtomicInteger i = new AtomicInteger();
+			colors.forEach(color1 ->
+			{
+				colorsByOrder[i.getAndIncrement()] = color1;
 				mulAut.getTransitions()
-						.forEach((source, setSetMap) -> setSetMap
-								.forEach((ls, states) -> states
-										.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)))));
-				break;
-			default:
-				color = colors.stream().findFirst().get();
+						.forEach((source, lsStatesMap) ->
+								lsStatesMap.forEach((ls, states) ->
+								{
+									if (!mulAut.getAcceptingStates(color1).contains(source))
+										states.forEach(destination -> automaton.addTransition(new Pair<>(source, color1), ls, new Pair<>(destination, color1)));
+								}));
+			});
 
-				mulAut.getInitialStates()
-						.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
-
-				mulAut.getAcceptingStates(color)
-						.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
-
-				final Integer[] colorsByOrder = new Integer[colors.size()];
-				final AtomicInteger i = new AtomicInteger();
-				colors.forEach(color1 ->
-				{
-					colorsByOrder[i.getAndIncrement()] = color1;
-					mulAut.getTransitions()
-							.forEach((source, lsStatesMap) ->
-									lsStatesMap.forEach((ls, states) ->
-									{
-										if (!mulAut.getAcceptingStates(color1).contains(source))
-											states.forEach(destination -> automaton.addTransition(new Pair<>(source, color1), ls, new Pair<>(destination, color1)));
-									}));
-				});
-
-				for (int i1 = 0; i1 < colors.size(); i1++)
-				{
-					final int finalI = i1;
-					mulAut.getTransitions()
-							.forEach((source, lsStatesMap) ->
-									lsStatesMap.forEach((ls, states) ->
-									{
-										if (mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source))
-											states.forEach(destination -> automaton.addTransition(new Pair<>(source, finalI), ls, new Pair<>(destination, finalI % colors.size() + 1/* should be the next color, and if is the last, should be the first color */)));
-									}));
-				}
+			for (int i1 = 0; i1 < colors.size(); i1++)
+			{
+				final int finalI = i1;
+				mulAut.getTransitions()
+						.forEach((source, lsStatesMap) ->
+								lsStatesMap.forEach((ls, states) ->
+								{
+									if (mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source))
+										states.forEach(destination -> automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[(finalI + 1) % colors.size()] /* should be the next color, and if is the last, should be the first color */)));
+								}));
+			}
 		}
 		return automaton;
 //		throw new java.lang.UnsupportedOperationException();
