@@ -1346,7 +1346,7 @@ public class FvmFacade
 											states.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)));
 									})));
 
-			for (int i = 0; i < colors.size(); i++)
+			for (int i = 0; i < colorsByOrder.length; i++)
 			{
 				final int finalI = i;
 				mulAut.getTransitions()
@@ -1354,7 +1354,7 @@ public class FvmFacade
 								lsStatesMap.forEach((ls, states) ->
 								{
 									if (mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source))
-										states.forEach(destination -> automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[(finalI + 1) % colors.size()])));
+										states.forEach(destination -> automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[(finalI + 1) % colorsByOrder.length])));
 								}));
 			}
 		}
