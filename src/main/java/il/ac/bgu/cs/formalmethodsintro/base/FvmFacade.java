@@ -1349,15 +1349,12 @@ public class FvmFacade
 				final int finalI = i;
 				mulAut.getTransitions()
 						.forEach((source, lsStatesMap) ->
-								lsStatesMap.forEach((ls, states) ->
-										states.forEach((destination ->
-												automaton.addTransition(
-														new Pair<>(source, colorsByOrder[finalI]),
-														ls,
-														new Pair<>(destination,
-																colorsByOrder[mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source) ?
-																		(finalI + 1) % colorsByOrder.length :
-																		finalI]))))));
+						{
+							final boolean isSourceAcceptingState = mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source);
+							lsStatesMap.forEach((ls, states) ->
+									states.forEach((destination ->
+											automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[isSourceAcceptingState ? (finalI + 1) % colorsByOrder.length : finalI])))));
+						});
 			}
 		}
 		return automaton;
