@@ -1376,17 +1376,23 @@ public class FvmFacade
 		ltlExpressionsToAdd.add(ltl);
 		Set<LTL<L>> ltlExpressions = new HashSet<>();
 
-		while (!ltlExpressionsToAdd.isEmpty()) {
+		while (!ltlExpressionsToAdd.isEmpty())
+		{
 			LTL<L> ltlSubExpression = ltlExpressionsToAdd.poll();
-			if (!ltlExpressions.contains(ltlSubExpression)){
-				if (ltlSubExpression instanceof Not) {
+			if (!ltlExpressions.contains(ltlSubExpression))
+			{
+				if (ltlSubExpression instanceof Not)
+				{
 					ltlExpressionsToAdd.add(((Not<L>) ltlSubExpression).getInner());
-				} else{
+				} else
+				{
 					ltlExpressions.add(ltlSubExpression);
-					if (ltlSubExpression instanceof And || ltlSubExpression instanceof Until) {
+					if (ltlSubExpression instanceof And || ltlSubExpression instanceof Until)
+					{
 						ltlExpressionsToAdd.add((ltlSubExpression instanceof And) ? ((And<L>) ltlSubExpression).getLeft() : ((Until<L>) ltlSubExpression).getLeft());
 						ltlExpressionsToAdd.add((ltlSubExpression instanceof And) ? ((And<L>) ltlSubExpression).getRight() : ((Until<L>) ltlSubExpression).getRight());
-					} else if (ltlSubExpression instanceof Next) {
+					} else if (ltlSubExpression instanceof Next)
+					{
 						ltlExpressionsToAdd.add(((Next<L>) ltlSubExpression).getInner());
 					}
 				}
@@ -1395,15 +1401,15 @@ public class FvmFacade
 
 		Set<Until<L>> untilLtlExpressions = ltlExpressions.stream()
 				.filter(ltlExpression -> ltlExpression instanceof Until)
-					.map(ltlExpression -> (Until<L>) ltlExpression)
-						.collect(Collectors.toSet());
+				.map(ltlExpression -> (Until<L>) ltlExpression)
+				.collect(Collectors.toSet());
 
 		Set<Next<L>> nextLtlExpressions = ltlExpressions.stream()
 				.filter(ltlExpression -> ltlExpression instanceof Next)
-					.map(ltlExpression -> (Next<L>) ltlExpression)
-						.collect(Collectors.toSet());
+				.map(ltlExpression -> (Next<L>) ltlExpression)
+				.collect(Collectors.toSet());
 
-		int ltlSize = (int)Math.pow(2, ltlExpressions.size());
+		int ltlSize = (int) Math.pow(2, ltlExpressions.size());
 
 		List<Set<LTL<L>>> ltlSubExpressions = new ArrayList<>(ltlSize);
 		for (int m = 0; m < ltlSize; m++)
@@ -1413,8 +1419,10 @@ public class FvmFacade
 			Iterator<LTL<L>> ltlIterator = ltlExpressions.iterator();
 			LTL<L> ltlExpression;
 			boolean flag;
-			for (m = 1; ltlIterator.hasNext(); m *= 2) {
-				for (n = 0, acc = 0, flag = true, ltlExpression = ltlIterator.next(); n < ltlSize; n++) {
+			for (m = 1; ltlIterator.hasNext(); m *= 2)
+			{
+				for (n = 0, acc = 0, flag = true, ltlExpression = ltlIterator.next(); n < ltlSize; n++)
+				{
 					ltlSubExpressions.get(n).add(flag ? ltlExpression : LTL.not(ltlExpression));
 					acc = (acc + 1) % m;
 					flag = (acc == 0) != flag;
@@ -1423,16 +1431,19 @@ public class FvmFacade
 		}
 
 		List<Set<LTL<L>>> states = new ArrayList<>();
-		for (Set<LTL<L>> ltlSubExpression : ltlSubExpressions) {
+		for (Set<LTL<L>> ltlSubExpression : ltlSubExpressions)
+		{
 			Iterator<LTL<L>> ltlSubExpressionIterator = ltlSubExpression.iterator();
 			boolean flag = !ltlSubExpression.contains(LTL.not(new TRUE<L>()));
-			while (flag && ltlSubExpressionIterator.hasNext()) {
+			while (flag && ltlSubExpressionIterator.hasNext())
+			{
 				LTL<L> ltlExpression = ltlSubExpressionIterator.next();
 				if (ltlExpression instanceof Until)
 					flag = ltlSubExpression.contains(((Until<L>) ltlExpression).getRight()) || ltlSubExpression.contains(((Until<L>) ltlExpression).getLeft());
 				else if (ltlExpression instanceof And)
 					flag = ltlSubExpression.contains(((And<L>) ltlExpression).getLeft()) && ltlSubExpression.contains(((And<L>) ltlExpression).getRight());
-				else if (ltlExpression instanceof Not) {
+				else if (ltlExpression instanceof Not)
+				{
 					LTL<L> innerItem = ((Not<L>) ltlExpression).getInner();
 					if (innerItem instanceof Until)
 						flag = !(ltlSubExpression.contains(((Until<L>) innerItem).getRight()));
@@ -1444,36 +1455,44 @@ public class FvmFacade
 				states.add(ltlSubExpression);
 		}
 
-		states.forEach(state ->{
+		states.forEach(state ->
+		{
 			automaton.addState(state);
-			if (state.contains(ltl)) {
+			if (state.contains(ltl))
+			{
 				automaton.setInitial(state);
 			}
 		});
 
 		int color = 1;
-		for (Until<L> untilLtlExpression : untilLtlExpressions) {
-			for (Set<LTL<L>> state : states) {
-				if (!state.contains(untilLtlExpression) || state.contains(untilLtlExpression.getRight())) {
+		for (Until<L> untilLtlExpression : untilLtlExpressions)
+		{
+			for (Set<LTL<L>> state : states)
+			{
+				if (!state.contains(untilLtlExpression) || state.contains(untilLtlExpression.getRight()))
+				{
 					automaton.setAccepting(state, color);
 				}
 			}
 			color++;
 		}
 
-		states.forEach(sourceState -> {
+		states.forEach(sourceState ->
+		{
 			Set<L> actions = sourceState.stream()
 					.filter(exp -> exp instanceof AP)
-						.map(exp -> ((AP<L>) exp)
-								.getName())
+					.map(exp -> ((AP<L>) exp)
+							.getName())
 					.collect(Collectors.toSet());
-			sourceState.forEach(exp -> states.forEach(destinationState -> {
+			sourceState.forEach(exp -> states.forEach(destinationState ->
+			{
 				if (nextLtlExpressions.stream().noneMatch(e -> sourceState.contains(e) != destinationState.contains(e.getInner())) &&
 						untilLtlExpressions.stream().noneMatch(e -> sourceState.contains(e) != (sourceState.contains(e.getRight()) || (sourceState.contains(e.getLeft()) && destinationState.contains(e)))))
 					automaton.addTransition(sourceState, actions, destinationState);
 			}));
 		});
-		if (automaton.getColors().isEmpty()) {
+		if (automaton.getColors().isEmpty())
+		{
 			states.forEach(state -> automaton.setAccepting(state, 1));
 		}
 		return GNBA2NBA(automaton);

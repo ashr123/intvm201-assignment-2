@@ -43,6 +43,7 @@
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/transitionsystem/TSTransition.java
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/exceptions/ActionNotFoundException.java
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/automata/MultiColorAutomaton.java
+/Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/fairness/FairnessCondition.java
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/util/CollectionHelper.java
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/programgraph/ActionDef.java
 /Users/royash/Documents/intvm201-assignment-2/src/main/java/il/ac/bgu/cs/formalmethodsintro/base/exceptions/InvalidLablingPairException.java
