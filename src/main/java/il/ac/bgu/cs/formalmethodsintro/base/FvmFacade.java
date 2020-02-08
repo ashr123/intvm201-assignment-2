@@ -1464,7 +1464,7 @@ public class FvmFacade
 			}
 		});
 
-		int color = 1;
+		int color = 0;
 		for (Until<L> untilLtlExpression : untilLtlExpressions)
 		{
 			for (Set<LTL<L>> state : states)
@@ -1493,7 +1493,7 @@ public class FvmFacade
 		});
 		if (automaton.getColors().isEmpty())
 		{
-			states.forEach(state -> automaton.setAccepting(state, 1));
+			states.forEach(state -> automaton.setAccepting(state, 0));
 		}
 		return GNBA2NBA(automaton);
 	}

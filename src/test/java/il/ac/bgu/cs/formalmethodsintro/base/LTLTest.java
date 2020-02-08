@@ -144,6 +144,7 @@ public class LTLTest
 		LTL<String> ltlOuter = until(new TRUE<String>(), new Not<String>(ltlInner));
 
 		Automaton<?, String> aut = fvmFacadeImpl.LTL2NBA(ltlOuter);
+		Automaton<Pair<Set<LTL<String>>, Integer>, String> aut3 = expected3();
 
 		assertEquals(aut.equals(expected3()), true);
 	}
