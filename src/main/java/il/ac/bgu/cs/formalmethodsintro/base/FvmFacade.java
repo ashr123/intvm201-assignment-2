@@ -8,7 +8,7 @@ import il.ac.bgu.cs.formalmethodsintro.base.circuits.Circuit;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.ActionNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.formalmethodsintro.base.fairness.FairnessCondition;
-import il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL;
+import il.ac.bgu.cs.formalmethodsintro.base.ltl.*;
 import il.ac.bgu.cs.formalmethodsintro.base.nanopromela.NanoPromelaFileReader;
 import il.ac.bgu.cs.formalmethodsintro.base.nanopromela.NanoPromelaParser;
 import il.ac.bgu.cs.formalmethodsintro.base.programgraph.*;
@@ -1371,7 +1371,112 @@ public class FvmFacade
 	 */
 	public <L> Automaton<?, L> LTL2NBA(LTL<L> ltl)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		MultiColorAutomaton<Set<LTL<L>>, L> automaton = new MultiColorAutomaton<>();
+		Queue<LTL<L>> ltlExpressionsToAdd = new ArrayDeque<>();
+		ltlExpressionsToAdd.add(ltl);
+		Set<LTL<L>> ltlExpressions = new HashSet<>();
+
+		while (!ltlExpressionsToAdd.isEmpty()) {
+			LTL<L> ltlSubExpression = ltlExpressionsToAdd.poll();
+			if (!ltlExpressions.contains(ltlSubExpression)){
+				if (ltlSubExpression instanceof Not) {
+					ltlExpressionsToAdd.add(((Not<L>) ltlSubExpression).getInner());
+				} else{
+					ltlExpressions.add(ltlSubExpression);
+					if (ltlSubExpression instanceof And || ltlSubExpression instanceof Until) {
+						ltlExpressionsToAdd.add((ltlSubExpression instanceof And) ? ((And<L>) ltlSubExpression).getLeft() : ((Until<L>) ltlSubExpression).getLeft());
+						ltlExpressionsToAdd.add((ltlSubExpression instanceof And) ? ((And<L>) ltlSubExpression).getRight() : ((Until<L>) ltlSubExpression).getRight());
+					} else if (ltlSubExpression instanceof Next) {
+						ltlExpressionsToAdd.add(((Next<L>) ltlSubExpression).getInner());
+					}
+				}
+			}
+		}
+
+		Set<Until<L>> untilLtlExpressions = ltlExpressions.stream()
+				.filter(ltlExpression -> ltlExpression instanceof Until)
+					.map(ltlExpression -> (Until<L>) ltlExpression)
+						.collect(Collectors.toSet());
+
+		Set<Next<L>> nextLtlExpressions = ltlExpressions.stream()
+				.filter(ltlExpression -> ltlExpression instanceof Next)
+					.map(ltlExpression -> (Next<L>) ltlExpression)
+						.collect(Collectors.toSet());
+
+		int ltlSize = (int)Math.pow(2, ltlExpressions.size());
+
+		List<Set<LTL<L>>> ltlSubExpressions = new ArrayList<>(ltlSize);
+		for (int m = 0; m < ltlSize; m++)
+			ltlSubExpressions.add(new HashSet<>(ltlExpressions.size()));
+		{
+			int m, n, acc;
+			Iterator<LTL<L>> ltlIterator = ltlExpressions.iterator();
+			LTL<L> ltlExpression;
+			boolean flag;
+			for (m = 1; ltlIterator.hasNext(); m *= 2) {
+				for (n = 0, acc = 0, flag = true, ltlExpression = ltlIterator.next(); n < ltlSize; n++) {
+					ltlSubExpressions.get(n).add(flag ? ltlExpression : LTL.not(ltlExpression));
+					acc = (acc + 1) % m;
+					flag = (acc == 0) != flag;
+				}
+			}
+		}
+
+		List<Set<LTL<L>>> states = new ArrayList<>();
+		for (Set<LTL<L>> ltlSubExpression : ltlSubExpressions) {
+			Iterator<LTL<L>> ltlSubExpressionIterator = ltlSubExpression.iterator();
+			boolean flag = !ltlSubExpression.contains(LTL.not(new TRUE<L>()));
+			while (flag && ltlSubExpressionIterator.hasNext()) {
+				LTL<L> ltlExpression = ltlSubExpressionIterator.next();
+				if (ltlExpression instanceof Until)
+					flag = ltlSubExpression.contains(((Until<L>) ltlExpression).getRight()) || ltlSubExpression.contains(((Until<L>) ltlExpression).getLeft());
+				else if (ltlExpression instanceof And)
+					flag = ltlSubExpression.contains(((And<L>) ltlExpression).getLeft()) && ltlSubExpression.contains(((And<L>) ltlExpression).getRight());
+				else if (ltlExpression instanceof Not) {
+					LTL<L> innerItem = ((Not<L>) ltlExpression).getInner();
+					if (innerItem instanceof Until)
+						flag = !(ltlSubExpression.contains(((Until<L>) innerItem).getRight()));
+					else if (innerItem instanceof And)
+						flag = !(ltlSubExpression.contains(((And<L>) innerItem).getLeft()) && ltlSubExpression.contains(((And<L>) innerItem).getRight()));
+				}
+			}
+			if (flag)
+				states.add(ltlSubExpression);
+		}
+
+		states.forEach(state ->{
+			automaton.addState(state);
+			if (state.contains(ltl)) {
+				automaton.setInitial(state);
+			}
+		});
+
+		int color = 1;
+		for (Until<L> untilLtlExpression : untilLtlExpressions) {
+			for (Set<LTL<L>> state : states) {
+				if (!state.contains(untilLtlExpression) || state.contains(untilLtlExpression.getRight())) {
+					automaton.setAccepting(state, color);
+				}
+			}
+			color++;
+		}
+
+		states.forEach(sourceState -> {
+			Set<L> actions = sourceState.stream()
+					.filter(exp -> exp instanceof AP)
+						.map(exp -> ((AP<L>) exp)
+								.getName())
+					.collect(Collectors.toSet());
+			sourceState.forEach(exp -> states.forEach(destinationState -> {
+				if (nextLtlExpressions.stream().noneMatch(e -> sourceState.contains(e) != destinationState.contains(e.getInner())) &&
+						untilLtlExpressions.stream().noneMatch(e -> sourceState.contains(e) != (sourceState.contains(e.getRight()) || (sourceState.contains(e.getLeft()) && destinationState.contains(e)))))
+					automaton.addTransition(sourceState, actions, destinationState);
+			}));
+		});
+		if (automaton.getColors().isEmpty()) {
+			states.forEach(state -> automaton.setAccepting(state, 1));
+		}
+		return GNBA2NBA(automaton);
 	}
 
 	/**
