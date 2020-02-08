@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -1351,10 +1350,10 @@ public class FvmFacade
 				mulAut.getTransitions()
 						.forEach((source, lsStatesMap) ->
 						{
-							final Supplier<Integer> colorSupplier = mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source) ? () -> (finalI + 1) % colorsByOrder.length : () -> finalI; // sort of boxing
+							final boolean isSourceAcceptingState = mulAut.getAcceptingStates(colorsByOrder[finalI]).contains(source);
 							lsStatesMap.forEach((ls, states) ->
 									states.forEach((destination ->
-											automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[colorSupplier.get()])))));
+											automaton.addTransition(new Pair<>(source, colorsByOrder[finalI]), ls, new Pair<>(destination, colorsByOrder[isSourceAcceptingState ? (finalI + 1) % colorsByOrder.length : finalI])))));
 						});
 			}
 		}
