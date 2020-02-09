@@ -1309,23 +1309,7 @@ public class FvmFacade
 									automaton.setAccepting(destinationPair);
 								}));
 					});
-		}
-//		else if (colors.size() == 1) // maybe case 1 ⊂ default?
-//		{
-//			color = colors.stream().findFirst().get();
-//
-//			mulAut.getInitialStates()
-//					.forEach(state -> automaton.setInitial(new Pair<>(state, color)));
-//
-//			mulAut.getAcceptingStates(color)
-//					.forEach(state -> automaton.setAccepting(new Pair<>(state, color)));
-//
-//			mulAut.getTransitions()
-//					.forEach((source, setSetMap) -> setSetMap
-//							.forEach((ls, states) -> states
-//									.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)))));
-//		}
-		else
+		} else
 		{
 			final Integer[] colorsByOrder = colors.toArray(new Integer[0]);
 
@@ -1334,15 +1318,6 @@ public class FvmFacade
 
 			mulAut.getAcceptingStates(colorsByOrder[0])
 					.forEach(state -> automaton.setAccepting(new Pair<>(state, colorsByOrder[0])));
-
-//			Stream.of(colorsByOrder)
-//					.forEach(color -> mulAut.getTransitions()
-//							.forEach((source, lsStatesMap) ->
-//									lsStatesMap.forEach((ls, states) ->
-//									{
-//										if (!mulAut.getAcceptingStates(color).contains(source))
-//											states.forEach(destination -> automaton.addTransition(new Pair<>(source, color), ls, new Pair<>(destination, color)));
-//									})));
 
 			for (int i = 0; i < colorsByOrder.length; i++)
 			{
