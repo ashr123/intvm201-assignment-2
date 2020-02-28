@@ -27,6 +27,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL.*;
+
 /**
  * Interface for the entry point class to the HW in this class. Our
  * client/testing code interfaces with the student solutions through this
@@ -1397,21 +1399,19 @@ public class FvmFacade
 			LTL<L> ltlExpression;
 			boolean flag;
 			for (m = 1; ltlIterator.hasNext(); m *= 2)
-			{
 				for (n = 0, acc = 0, flag = true, ltlExpression = ltlIterator.next(); n < ltlSize; n++)
 				{
-					ltlSubExpressions.get(n).add(flag ? ltlExpression : LTL.not(ltlExpression));
+					ltlSubExpressions.get(n).add(flag ? ltlExpression : not(ltlExpression));
 					acc = (acc + 1) % m;
 					flag = (acc == 0) != flag;
 				}
-			}
 		}
 
 		List<Set<LTL<L>>> states = new LinkedList<>();
 		for (Set<LTL<L>> ltlSubExpression : ltlSubExpressions)
 		{
 			Iterator<LTL<L>> ltlSubExpressionIterator = ltlSubExpression.iterator();
-			boolean flag = !ltlSubExpression.contains(LTL.not(new TRUE<L>()));
+			boolean flag = !ltlSubExpression.contains(not(new TRUE<L>()));
 			while (flag && ltlSubExpressionIterator.hasNext())
 			{
 				LTL<L> ltlExpression = ltlSubExpressionIterator.next();
@@ -1483,6 +1483,205 @@ public class FvmFacade
 	 */
 	public <S, A, P> VerificationResult<S> verifyFairLTLFormula(TransitionSystem<S, A, P> ts, FairnessCondition<A> fc, LTL<P> ltl)
 	{
-		throw new java.lang.UnsupportedOperationException();
+		TransitionSystem<Pair<S, A>, A, ExtendedAP> tsF = new TransitionSystem<>();
+		LTL<ExtendedAP> newLTL = reconstructLTLWithExtendedAP(ltl); //Make ltl as extendedAP type
+		tsF.addAllActions(ts.getActions());
+		ts.getStates()
+				.forEach(state ->
+						ts.getActions().stream()
+								.map(act -> new Pair<>(state, act))
+								.forEach(newState ->
+								{
+									tsF.addState(newState);
+									if (ts.getInitialStates().contains(state))
+										tsF.addInitialState(newState);
+								}));
+		Set<ExtendedAP> extendedAP = ts.getAtomicPropositions().stream()
+				.map(OriginalAP::new)
+				.collect(Collectors.toSet());
+		ts.getActions()
+				.forEach(act ->
+				{
+					extendedAP.add(new TriggeredAP<>(act));
+					extendedAP.add(new EnabledAP<>(act));
+				});
+		tsF.getStates().forEach(state ->
+		{
+			ts.getLabelingFunction().get(state.getFirst())
+					.forEach(ap -> tsF.addToLabel(state, new OriginalAP<>(ap)));
+			tsF.addToLabel(state, new TriggeredAP<>(state.getSecond()));
+			ts.getActions().stream()
+					.filter(act -> !post(ts, state.getFirst(), act).isEmpty())
+					.forEach(act -> tsF.addToLabel(state, new EnabledAP<>(act)));
+		});
+		tsF.addAllAtomicPropositions(extendedAP);
+
+		ts.getTransitions()
+				.forEach(transition ->
+						tsF.getStates().stream()
+								.filter(s -> s.getFirst().equals(transition.getFrom()))
+								.forEach(state -> tsF.addTransitionFrom(state).action(transition.getAction()).to(new Pair<>(transition.getTo(), transition.getAction()))));
+
+		//TS is ready. now we will verify each fairness constraint
+		VerificationResult<Pair<S, A>> fulfilled = null;
+		for (Set<A> unconditionalConstraint : fc.getUnconditional())
+		{
+			for (A act : unconditionalConstraint)
+			{
+				ExtendedAP actAP = new TriggeredAP<>(act);
+				AP<ExtendedAP> ap = new AP<>(actAP);
+				fulfilled = checkConstraint(tsF, LTLUtil.implies(LTLUtil.eventuallyAlways(ap), newLTL));
+				if (fulfilled instanceof VerificationSucceeded)
+					break;
+			}
+			//if all action set is not fulfilled at all - build verificationFailed<S> and return it.
+			if (fulfilled instanceof VerificationFailed)
+				return buildVerificationFailedObject((VerificationFailed<Pair<S, A>>) fulfilled);
+		}
+
+		for (Set<A> strongConstraint : fc.getStrong())
+		{
+			for (A act : strongConstraint)
+			{
+				ExtendedAP triggered = new TriggeredAP<>(act);
+				AP<ExtendedAP> triggeredAP = new AP<>(triggered);
+				ExtendedAP enabled = new EnabledAP<>(act);
+				AP<ExtendedAP> enabledAP = new AP<>(enabled);
+				fulfilled = checkConstraint(tsF, LTLUtil.implies(LTLUtil.implies(LTLUtil.alwaysEventually(enabledAP), LTLUtil.alwaysEventually(triggeredAP)), newLTL));
+				if (fulfilled instanceof VerificationSucceeded)
+					break;
+			}
+			if (fulfilled instanceof VerificationFailed)
+				return buildVerificationFailedObject((VerificationFailed<Pair<S, A>>) fulfilled);
+		}
+
+		for (Set<A> weakConstraint : fc.getWeak())
+		{
+			for (A act : weakConstraint)
+			{
+				ExtendedAP triggered = new TriggeredAP<>(act);
+				AP<ExtendedAP> triggeredAP = new AP<>(triggered);
+				ExtendedAP enabled = new EnabledAP<>(act);
+				AP<ExtendedAP> enabledAP = new AP<>(enabled);
+				fulfilled = checkConstraint(tsF, LTLUtil.implies(LTLUtil.implies(LTLUtil.eventuallyAlways(enabledAP), LTLUtil.alwaysEventually(triggeredAP)), newLTL));
+				if (fulfilled instanceof VerificationSucceeded)
+					break;
+			}
+			if (fulfilled instanceof VerificationFailed)
+				return buildVerificationFailedObject((VerificationFailed<Pair<S, A>>) fulfilled);
+		}
+
+		return new VerificationSucceeded<S>();
+//		throw new java.lang.UnsupportedOperationException();
+	}
+
+	private <S, A> VerificationFailed<S> buildVerificationFailedObject(VerificationFailed<Pair<S, A>> res)
+	{
+		VerificationFailed<S> toReturn = new VerificationFailed<>();
+		toReturn.setPrefix(res.getPrefix().stream()
+				.map(Pair::getFirst)
+				.collect(Collectors.toList()));
+		toReturn.setCycle(res.getCycle().stream()
+				.map(Pair::getFirst)
+				.collect(Collectors.toList()));
+		return toReturn;
+	}
+
+	private <A, S> VerificationResult<Pair<S, A>> checkConstraint(TransitionSystem<Pair<S, A>, A, ExtendedAP> tsF, LTL<ExtendedAP> ap)
+	{
+		LTL<ExtendedAP> badPrefLTL = not(ap);
+		Automaton<?, ExtendedAP> automaton = LTL2NBA(badPrefLTL);
+		return verifyAnOmegaRegularProperty(tsF, automaton);
+	}
+
+
+	/**
+	 * This class implements more ltl operators based on the basic operators appears in LTL<T> class.
+	 */
+	private static class LTLUtil
+	{
+		private LTLUtil()
+		{
+		}
+
+		public static <A> LTL<A> eventually(LTL<A> phi)
+		{
+			return until(true_(), phi);
+		}
+
+		public static <A> LTL<A> always(LTL<A> phi)
+		{
+			return not(eventually(not(phi)));
+		}
+
+		public static <A> LTL<A> alwaysEventually(LTL<A> phi)
+		{
+			return always(eventually(phi));
+		}
+
+		public static <A> LTL<A> eventuallyAlways(LTL<A> phi)
+		{
+			return eventually(always(phi));
+		}
+
+		public static <A> LTL<A> or(LTL<A> phi1, LTL<A> phi2)
+		{
+			return not(and(not(phi1), not(phi2)));
+		}
+
+		public static <A> LTL<A> implies(LTL<A> phi1, LTL<A> phi2)
+		{
+			return not(and(phi1, not(phi2)));
+		}
+
+	}
+
+	private abstract static class ExtendedAP
+	{
+	}
+
+	private static class OriginalAP<P> extends ExtendedAP
+	{
+		private final P ap;
+
+		OriginalAP(P ap)
+		{
+			this.ap = ap;
+		}
+
+		public P getAp()
+		{
+			return ap;
+		}
+	}
+
+	private static class TriggeredAP<A> extends ExtendedAP
+	{
+		private final A triggeredAct;
+
+		TriggeredAP(A triggeredAct)
+		{
+			this.triggeredAct = triggeredAct;
+		}
+
+		public A getTriggeredAct()
+		{
+			return triggeredAct;
+		}
+	}
+
+	private static class EnabledAP<A> extends ExtendedAP
+	{
+		private final A enabledAP;
+
+		EnabledAP(A enabledAP)
+		{
+			this.enabledAP = enabledAP;
+		}
+
+		public A getEnabledAP()
+		{
+			return enabledAP;
+		}
 	}
 }

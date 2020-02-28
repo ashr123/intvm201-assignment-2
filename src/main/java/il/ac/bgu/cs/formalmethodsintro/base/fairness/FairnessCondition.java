@@ -4,9 +4,9 @@ import java.util.Set;
 
 public class FairnessCondition<T>
 {
-	private Set<Set<T>> unconditional;
-	private Set<Set<T>> strong;
-	private Set<Set<T>> weak;
+	private final Set<Set<T>> unconditional;
+	private final Set<Set<T>> strong;
+	private final Set<Set<T>> weak;
 
 	public FairnessCondition(Set<Set<T>> unconditional, Set<Set<T>> strong, Set<Set<T>> weak)
 	{

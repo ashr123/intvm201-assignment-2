@@ -2,7 +2,6 @@ package il.ac.bgu.cs.formalmethodsintro.base.ltl;
 
 public class AP<L> extends LTL<L>
 {
-
 	L name;
 
 	public AP(L name)
@@ -51,29 +50,16 @@ public class AP<L> extends LTL<L>
 	public boolean equals(Object obj)
 	{
 		if (this == obj)
-		{
 			return true;
-		}
 		if (obj == null)
-		{
 			return false;
-		}
 		if (!(obj instanceof AP))
-		{
 			return false;
-		}
 		AP<?> other = (AP<?>) obj;
 		if (name == null)
-		{
-			if (other.name != null)
-			{
-				return false;
-			}
-		} else if (!name.equals(other.name))
-		{
-			return false;
-		}
-		return true;
+			return other.name == null;
+		else
+			return name.equals(other.name);
 	}
 
 }
