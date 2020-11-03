@@ -18,6 +18,6 @@ public class TRUE<L> extends LTL<L>
 	@Override
 	public String toString()
 	{
-		return "true";
+		return String.valueOf(true);
 	}
 }

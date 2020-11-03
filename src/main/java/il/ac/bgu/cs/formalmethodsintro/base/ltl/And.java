@@ -70,38 +70,20 @@ public class And<L> extends LTL<L>
 	public boolean equals(Object obj)
 	{
 		if (this == obj)
-		{
 			return true;
-		}
 		if (obj == null)
-		{
 			return false;
-		}
 		if (!(obj instanceof And))
-		{
 			return false;
-		}
 		And<?> other = (And<?>) obj;
 		if (left == null)
 		{
 			if (other.left != null)
-			{
 				return false;
-			}
 		} else if (!left.equals(other.left))
-		{
 			return false;
-		}
 		if (right == null)
-		{
-			if (other.right != null)
-			{
-				return false;
-			}
-		} else if (!right.equals(other.right))
-		{
-			return false;
-		}
-		return true;
+			return other.right == null;
+		else return right.equals(other.right);
 	}
 }

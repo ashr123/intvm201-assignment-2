@@ -45,29 +45,15 @@ public class Not<L> extends LTL<L>
 	public boolean equals(Object obj)
 	{
 		if (this == obj)
-		{
 			return true;
-		}
 		if (obj == null)
-		{
 			return false;
-		}
 		if (!(obj instanceof Not))
-		{
 			return false;
-		}
 		Not<?> other = (Not<?>) obj;
 		if (inner == null)
-		{
-			if (other.inner != null)
-			{
-				return false;
-			}
-		} else if (!inner.equals(other.inner))
-		{
-			return false;
-		}
-		return true;
+			return other.inner == null;
+		else return inner.equals(other.inner);
 	}
 
 }

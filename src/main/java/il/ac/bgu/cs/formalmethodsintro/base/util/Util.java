@@ -18,7 +18,7 @@ public class Util
 
 	public static <T1, T2> Set<Pair<T1, T2>> getPairs(Set<T1> s1, Set<T2> s2)
 	{
-		return s1.stream()
+		return s1.parallelStream()
 				.flatMap(e1 -> s2.stream()
 						.map(e2 -> new Pair<>(e1, e2)))
 				.collect(Collectors.toSet());
