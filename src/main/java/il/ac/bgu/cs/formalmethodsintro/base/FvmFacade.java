@@ -550,19 +550,17 @@ public class FvmFacade
 				.forEach(ts::addInitialState));
 
 		// Adding all the transitions.
-		final Set<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitions = ts.getActions().stream()
+		ts.getActions().stream()
 				.flatMap(action -> ts.getStates().stream()
 						.map(state -> new TSTransition<>(state, action, new Pair<>(action, circuit.updateRegisters(state.getFirst(), state.getSecond())))))
-//				.distinct() // for safety, maybe not needed
-				.peek(ts::addTransition)
-				.collect(Collectors.toSet());
+				.forEach(ts::addTransition);
 
 		final Set<Pair<Map<String, Boolean>, Map<String, Boolean>>> newReachableStates = reach(ts);
 		ts.getStates().stream()
 				.filter(Predicate.not(newReachableStates::contains))
-				.peek(state -> transitions.stream()
+				.peek(state -> ts.getTransitions().stream()
 						.filter(transition -> state.equals(transition.getFrom()) || state.equals(transition.getTo()))
-						.distinct()
+//						.distinct() // not needed, cause transitions var is Set
 						.forEach(ts::removeTransition))
 				.forEach(ts::removeState);
 
