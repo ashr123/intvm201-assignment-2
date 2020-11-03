@@ -11,6 +11,7 @@ import java.util.Set;
 import static il.ac.bgu.cs.formalmethodsintro.base.ltl.LTL.until;
 import static il.ac.bgu.cs.formalmethodsintro.base.util.CollectionHelper.set;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class LTLTest
 {
@@ -26,7 +27,7 @@ public class LTLTest
 
 		Automaton<?, String> aut = fvmFacadeImpl.LTL2NBA(ltl);
 
-		assertEquals(aut.equals(expected2()), true);
+		assertTrue(aut.equals(expected2()));
 	}
 
 	Automaton<Pair<Set<String>, Integer>, String> expected()

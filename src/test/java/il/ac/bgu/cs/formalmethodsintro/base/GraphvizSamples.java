@@ -10,7 +10,6 @@ import il.ac.bgu.cs.formalmethodsintro.base.util.GraphvizPainter;
  */
 public class GraphvizSamples
 {
-
 	static FvmFacade fvmFacadeImpl = FvmFacade.get();
 
 	@SuppressWarnings({"unchecked"})
@@ -48,8 +47,6 @@ public class GraphvizSamples
 		// You can copy the resulting string to, e.g., https://dreampuf.github.io/GraphvizOnline
 		System.out.println(GraphvizPainter.toStringPainter().makeDotCode(vendingMachine));
 	}
-
-	;
 
 	public enum STATE
 	{
