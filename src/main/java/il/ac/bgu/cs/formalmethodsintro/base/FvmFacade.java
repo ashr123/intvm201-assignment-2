@@ -550,7 +550,7 @@ public class FvmFacade
 				.forEach(ts::addInitialState));
 
 		// Adding all the transitions.
-		Set<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitions = ts.getActions().stream()
+		final Set<TSTransition<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>>> transitions = ts.getActions().stream()
 				.flatMap(action -> ts.getStates().stream()
 						.map(state -> new TSTransition<>(state, action, new Pair<>(action, circuit.updateRegisters(state.getFirst(), state.getSecond())))))
 //				.distinct() // for safety, maybe not needed
