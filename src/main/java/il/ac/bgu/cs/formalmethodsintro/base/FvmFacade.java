@@ -532,24 +532,23 @@ public class FvmFacade
 		final TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, String> ts = new TransitionSystem<>();
 
 		// Adding all the actions and transitions.
-		ts.addAllActions(Util.powerSet(circuit.getInputPortNames()).stream()
+		Util.powerSet(circuit.getInputPortNames()).stream()
 				.map(inputsSet -> circuit.getInputPortNames().stream()
 						.collect(Collectors.toMap(Function.identity(), inputsSet::contains, (a, b) -> b)))
 				.peek(action -> ts.getStates().stream()
 						.map(state -> new TSTransition<>(state, action, new Pair<>(action, circuit.updateRegisters(state.getFirst(), state.getSecond()))))
 						.forEach(ts::addTransition))
-				.collect(Collectors.toSet()));
+				.forEach(ts::addAction);
 
-		// Adding all the initial states and states.
-		final Set<Map<String, Boolean>> registersMaps = Util.powerSet(circuit.getRegisterNames()).parallelStream()
-				.map(registersSet -> circuit.getRegisterNames().parallelStream()
+		// Adding all the states and initial states.
+		Util.powerSet(circuit.getRegisterNames()).stream()
+				.map(registersSet -> circuit.getRegisterNames().stream()
 						.collect(Collectors.toMap(Function.identity(), registersSet::contains, (a, b) -> b)))
-				.collect(Collectors.toSet());
-		ts.getActions().forEach(inputsMap -> registersMaps.stream()
-				.map(registersMap -> new Pair<>(inputsMap, registersMap))
-				.peek(ts::addState)
-				.filter(stateEntry -> !stateEntry.getSecond().containsValue(true))
-				.forEach(ts::addInitialState));
+				.forEach(registersMap -> ts.getActions().stream()
+						.map(inputsMap -> new Pair<>(inputsMap, registersMap))
+						.peek(ts::addState)
+						.filter(stateEntry -> !stateEntry.getSecond().containsValue(true))
+						.forEach(ts::addInitialState));
 
 		final Set<Pair<Map<String, Boolean>, Map<String, Boolean>>> newReachableStates = reach(ts);
 		ts.getStates().stream()
